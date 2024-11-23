@@ -12,7 +12,7 @@ window = Window.window = Window.Window((500,500))
 pygame.display.set_caption('Game Title')
 
 
-state = 1
+state = 2
 while True:
     if state == 1:
         state = MainMenu().run()
