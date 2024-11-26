@@ -4,7 +4,7 @@ gc.disable()
 import pygame
 pygame.init()
 
-from GameApp import GameApp
+from Engine.Engine import GameApp
 from MainMenu import MainMenu
 import Window
 
