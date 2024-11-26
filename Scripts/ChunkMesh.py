@@ -6,7 +6,7 @@ from Scripts.Chunk import Chunk,ChunkStatus
 import glm
 from Utils.Math.Fast import njit,literal_unroll
 if typing.TYPE_CHECKING:
-    from Scene import RasterScene
+    from Engine.Scene import RasterScene
 
 class ChunkMesh:
     __slots__ = 'ctx','model_uniform','program','vao','vbo','dirty','chunk','lod'

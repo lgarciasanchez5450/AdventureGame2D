@@ -1,7 +1,6 @@
 from typing import Any
 import glm
-try:from Scripts.ChunkManager import RayTraceChunkManager
-except:from ChunkManager import RayTraceChunkManager
+
 class Octree:
     def __init__(self,position:tuple[int,int,int],size:int) -> None:
         self.root = ONode()
@@ -37,19 +36,3 @@ class ONode:
         
     def split(self):
         self.children = [ONode() for _ in range(8)]
-
-
-
-
-def treeify(chunk_manager:RayTraceChunkManager,superchunk_position:tuple[int,int,int]):
-    '''A superchunk is a 512 by 512 by 512 block region consisting of 16,777,216 normal chunks'''
-    chunk_position = glm.ivec3(superchunk_position) * 64
-    size = 9 #2**9 == 512
-    tree = Octree(chunk_position.to_tuple(),size)
-    for cx in range(chunk_position.x,chunk_position.x+64,1):
-        for cy in range(chunk_position.y,chunk_position.y+64,1):
-            for cz in range(chunk_position.z,chunk_position.z+64,1):
-                cpos = cx,cy,cz
-                if cpos not in chunk_manager.chunks: continue
-                tree.insert(cx,cy,cz,chunk_manager.chunks[cpos])
-    return tree

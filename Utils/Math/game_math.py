@@ -26,6 +26,12 @@ def collide_chunks(x1:float,y1:float,z1:float,x2:float,y2:float,z2:float,chunk_s
 	cy2 = (round(y2,4) / chunk_size).__ceil__()
 	cz2 = (round(z2,4) / chunk_size).__ceil__()
 	return[(x,y,z) for x in range(cx1,cx2,1) for z in range(cz1,cz2,1) for y in range(cy1,cy2,1)]
+def collide_chunks2d(x1:float,y1:float,x2:float,y2:float,chunk_size:int): # type: ignore[same-name]
+	cx1 = (round(x1,4) / chunk_size).__floor__()
+	cy1 = (round(y1,4) / chunk_size).__floor__()
+	cx2 = (round(x2,4) / chunk_size).__ceil__()
+	cy2 = (round(y2,4) / chunk_size).__ceil__()
+	return [(x,y) for x in range(cx1,cx2,1) for y in range(cy1,cy2,1)]
 try:
 	raise ModuleNotFoundError()
 	import entity_manager2 #type: ignore

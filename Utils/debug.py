@@ -80,18 +80,21 @@ class Tracer:
         self.running = False
 
     def trace(self,func:Callable):
-        def wrapper(*args,**kwargs):
-            if self.running:
-                self.calls.append((0,perf_counter(),func.__name__))
-                try:
-                    val = func(*args,**kwargs)
-                finally:
-                    self.calls.append((1,perf_counter(),func.__name__))
-                return val
-            return func(*args,**kwargs)
-        return wrapper
-    
+        if __debug__:
+            def wrapper(*args,**kwargs):
+                if self.running:
+                    self.calls.append((0,perf_counter(),func.__name__))
+                    try:
+                        val = func(*args,**kwargs)
+                    finally:
+                        self.calls.append((1,perf_counter(),func.__name__))
+                    return val
+                return func(*args,**kwargs)
+            return wrapper
+        else:
+            return func
     def show(self):
+        if not __debug__: return
         if not self.calls:
             return
         pygame.quit()

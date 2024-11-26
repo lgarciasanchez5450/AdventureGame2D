@@ -122,3 +122,108 @@ class Collider:
 
 	def copy(self):
 		return Collider(glm.vec3(self.c),self.s)
+	
+
+
+class Collider2D:
+	__slots__ = 'c','s'
+	def __init__(self,position:glm.vec2,size:tuple[float,float]|glm.vec2) -> None:
+		self.c = position
+		self.s = glm.vec2(size)
+		
+	
+	def move_x(self,x:float):
+		self.c.x += x
+	def move_y(self,y:float):
+		self.c.y += y
+	
+	def move(self,displacement:glm.vec2):
+		self.c += displacement
+
+	def setCenterX(self,x):
+		self.c.x = x
+	def setCenterY(self,y):
+		self.c.y = y
+	def setCenter(self,x:float,y:float):
+		self.c.xy = x,y
+
+	def setXPositive(self,right:float):
+		self.c.x = right - self.s.x/2
+	def setXNegative(self,left:float):
+		self.c.x = left + self.s.x/2
+	def setYPositive(self,bottom:float):
+		self.c.y = bottom - self.s.y/2
+	def setYNegative(self,top:float):
+		self.c.y = top + self.s.y/2
+
+
+	@property
+	def x_positive(self):
+		return self.c.x + self.s.x/2
+	@property
+	def x_negative(self):
+		assert self.s.x > 0
+		return self.c.x - self.s.x/2
+	@property
+	def y_positive(self):
+		return self.c.y + self.s.y/2
+	@property
+	def y_negative(self):
+		assert self.s.y > 0
+		return self.c.y - self.s.y/2
+	
+
+	
+	@property
+	def size(self):
+		return self.s.to_tuple()
+
+	@property
+	def centerx(self) -> float:
+		return self.c.x
+	
+	@property
+	def centery(self) -> float:
+		return self.c.y
+	
+
+	
+	@property
+	def center(self) -> tuple[float,float]:
+		return self.c.to_tuple()
+
+	@centerx.setter
+	def centerx(self,newVal:float): 
+		self.setCenterX(newVal)
+
+	@centery.setter
+	def centery(self,newVal:float): 
+		self.setCenterY(newVal)
+
+	@center.setter
+	def center(self,newVal:tuple[float,float]|glm.vec2):
+		self.setCenter(*newVal)
+		 
+
+
+	def collide_collider(self,c:'Collider2D'):
+		dist = self.c-c.c
+		size = self.s + c.s
+		return (-size.x < dist.x < size.x) and (-size.y < dist.y < size.y)
+
+	def collide_point_inclusive(self,point:tuple[float,float]|glm.vec2):
+		dist = self.c-point
+		size = self.s
+		return (-size.x < dist.x < size.x) and (-size.y < dist.y < size.y)
+
+	def collide_point_exclusive(self,point:tuple[float,float]|glm.vec2):
+		dist = self.c-point
+		size = self.s
+		return (-size.x <= dist.x <= size.x) and (-size.y <= dist.y <= size.y)
+		
+	def __str__(self):
+		return f'Collider(c:{self.c.to_tuple()},s:{self.s.to_tuple()})'
+
+
+	def copy(self):
+		return Collider2D(glm.vec2(self.c),self.s)

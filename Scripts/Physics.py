@@ -4,9 +4,9 @@ from Scripts.Chunk import Chunk
 from Utils.Math.game_math import *
 from Scripts.Entity import Entity
 if typing.TYPE_CHECKING:
-    from Scene import RasterScene
+    from Engine.Scene import Scene
 class Physics:
-    def __init__(self,scene:"RasterScene"):
+    def __init__(self,scene:"Scene"):
         self.blocks = []
         self.entities:list[Entity] = []
         self.scene = scene

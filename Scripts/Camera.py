@@ -5,14 +5,14 @@ from pygame import constants as const
 from Scripts.Chunk import Chunk
 from Scripts.LivingEntity import AliveEntity
 if typing.TYPE_CHECKING:
-    from GameApp import Engine
-    from GameApp import RasterScene,RayTraceScene
+    from Engine.Engine import Engine
+    from Engine.Engine import Scene
 NEAR = .1
 FAR = 1024
 
-class RasterCamera:
-    def __init__(self,scene:"RasterScene",position) -> None:
-        engine = self.scene.engine
+class Camera:
+    def __init__(self,scene:"Scene",position) -> None:
+        engine = scene.engine
         self.speed = 10
         self.scene = scene
         self.position = glm.vec3(position)
@@ -82,56 +82,39 @@ class RasterCamera:
     #     out = xz_movement + glm.vec3(0,1,0)* (self.engine.keys[const.K_SPACE]- self.engine.keys[const.K_LSHIFT]) 
     #     self.position += out * self.engine.time.dt
 
-class EntityCamera(RasterCamera):
-    def __init__(self,scene:"RasterScene",entity:AliveEntity):
+
+
+class Camera2D:
+    def __init__(self,scene:"Scene",position) -> None:
+        engine = scene.engine
+        self.scene = scene
+        self.position = glm.vec2(position)        
+        self.engine = engine
+        self.last = self.position // Chunk.SIZE
+        
+
+
+    def update(self):
+        self.check_chunk_cross()
+
+    def check_chunk_cross(self):
+        cpos = self.position//Chunk.SIZE
+        if self.last != cpos:
+            self.scene.chunk_manager.recalculateActiveChunks(*cpos)
+            self.last = cpos
+
+
+
+
+class EntityCamera(Camera2D):
+    def __init__(self,scene:"Scene",entity:AliveEntity):
         super().__init__(scene,entity.pos)
         self.position = entity.pos
         self.entity = entity
 
-    def update(self):
-        super().update()
-        self.entity.forward = self.xz_forward
-        self.entity.face_dir = self.forward
-        self.entity.right = self.right
+    # def update(self):
+    #     super().update()
+    #     self.entity.forward = self.xz_forward
+    #     self.entity.face_dir = self.forward
+    #     self.entity.right = self.right
 
-
-
-class RayTraceCamera:
-    def __init__(self,scene:"RayTraceScene",position:tuple[int,int,int]) -> None:
-        self.pos= glm.vec3(position)
-        self.position = self.pos
-        self.scene = scene
-        self.engine = scene.engine
-        self.yaw = 45
-        self.pitch = -32
-        self.xz_forward = glm.vec3()
-        self.forward = glm.vec3()
-        yaw = glm.radians(self.yaw)
-        pitch = glm.radians(self.pitch)
-        self.xz_forward.x = glm.cos(yaw)
-        self.xz_forward.z = glm.sin(yaw)
-        self.forward.x = self.xz_forward.x * glm.cos(pitch)
-        self.forward.y = glm.sin(pitch)
-        self.forward.z = self.xz_forward.z * glm.cos(pitch) 
-        self.right  = glm.normalize(glm.cross(self.forward,glm.vec3(0,1,0)))
-       
-        self.up = glm.normalize(glm.cross(self.right, self.forward))
-
-    def update(self):
-        self.position = self.pos
-        rel_x, rel_y = pygame.mouse.get_rel()
-        self.yaw += rel_x * 0.1
-        self.pitch -= rel_y * 0.1
-        self.pitch = min(max(self.pitch,-90),90)
-        self.yaw %= 360
-        yaw = glm.radians(self.yaw)
-        pitch = glm.radians(self.pitch)
-        self.xz_forward.x = glm.cos(yaw)
-        self.xz_forward.z = glm.sin(yaw)
-        self.forward.x = self.xz_forward.x * glm.cos(pitch)
-        self.forward.y = glm.sin(pitch)
-        self.forward.z = self.xz_forward.z * glm.cos(pitch) 
-        self.right  = glm.normalize(glm.cross(self.forward,glm.vec3(0,1,0)))
-       
-        self.up = glm.normalize(glm.cross(self.right, self.forward))
-        # print(self.up)

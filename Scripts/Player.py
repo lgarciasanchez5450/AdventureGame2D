@@ -4,11 +4,11 @@ from Scripts.LivingEntity import AliveEntity
 from pygame import constants as const
 from Scripts.Chunk import Chunk
 if typing.TYPE_CHECKING:
-    from Scene import RasterScene
+    from Engine.Scene import Scene
 class Player(AliveEntity):
     species ='human'
     __slots__ = 'cx','cy','can_move','attacking','state','showingInventory','hotbar','ui','hbui','walking_particle'
-    def __init__(self,scene:"RasterScene",position:tuple[int,int,int],size:tuple[float,float,float]|glm.vec3,health:float,max_health:float):
+    def __init__(self,scene:"Scene",position:tuple[int,int,int],size:tuple[float,float,float]|glm.vec3,health:float,max_health:float):
         super().__init__(scene,position,size,health,max_health)
         self.set_up_animation()
         self.time = scene.engine.time

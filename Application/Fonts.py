@@ -1,4 +1,7 @@
 from pygame.font import SysFont
+import pygame.font
+if not pygame.font.get_init():
+    pygame.font.init()
 
 title_font = SysFont('Arial',50)
 
