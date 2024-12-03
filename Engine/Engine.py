@@ -2,11 +2,11 @@ from pygame import display
 import pygame.constants as const
 from pygame.time import Clock
 import pygame
-from Application.Fonts import *
 # from GuiFramework import Input
 
-from SceneTransitions.BaseTransition import BaseTransition
-from Engine.Scene import Scene,BaseScene
+from Engine.SceneTransitions.BaseTransition import BaseTransition
+from Engine.Scene import BaseScene
+from Engine.ResourceManager import ResourceManager
 # from Scripts.ProgramManager import ProgramManager
 
 from Utils.debug import Tracer
@@ -27,6 +27,8 @@ class Engine:
         self.time = Time()
         self.tracer = Tracer()
 
+        self.sceneCreator = lambda : {}
+
 
         self.event_channel = EventChannel()
         # Project handler
@@ -34,9 +36,9 @@ class Engine:
         self.scenes:dict[str,BaseScene] = {
             # 'scene1': Scene(self)
         }
+        self.resource_manager = ResourceManager(resources_dir or 'Assets')
         self.active_scene:BaseScene
         self.next_scene:BaseScene|None = None
-        self.resources_dir = resources_dir or 'Assets'
 
     ## Scene Management ##
 
@@ -57,11 +59,9 @@ class Engine:
 
     ## End Scene Management ##
 
-    def loadResources(self):
-        pass
+
         
     ## Public Engine API ##
-
 
     def Start(self) -> bool: 
         '''
@@ -69,10 +69,12 @@ class Engine:
         The Window was just created. 
         Pygame is initialized.
         '''
-        
-        
-        self.scenes['scene1'] = Scene(self)
-        self.active_scene = self.scenes['scene1']
+        self.resource_manager.load()
+        self.scenes.update(self.sceneCreator())
+        if len(self.scenes) == 0: 
+            raise NotImplementedError("Undefined behaviour when no scenes implemented!")
+        if not hasattr(self,'active_scene'):
+            self.active_scene = self.scenes[list(self.scenes.keys())[0]]
         return True
         
     def Run(self):
@@ -123,6 +125,8 @@ class Engine:
             self.active_scene.stop()
             for scene in self.scenes.values():
                 scene.release()
+            self.resource_manager.release()
+            
         else:
             print("Engine Exited without cleanup.")
         if __debug__:

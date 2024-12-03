@@ -2,7 +2,7 @@ from Scripts.Player import Player
 from Scripts.ChunkManager import ChunkManager
 from Scripts.Physics import Physics
 from Scripts.Camera import Camera2D
-from SceneTransitions.BaseTransition import BaseTransition
+from Engine.SceneTransitions.BaseTransition import BaseTransition
 import pygame
 import numpy as np
 import pygame as pg
@@ -25,38 +25,10 @@ class BaseScene:
 import moderngl as mgl
 
 
-class Scene(BaseScene):
+class SampleScene(BaseScene):
     '''For all things diagetic (in game world/space)'''
     def __init__(self,engine:"Engine"):
         self.engine = engine
-    
-        # self.camera = Camera2D(self,(1,5,1))
-        # self.chunk_manager = ChunkManager(self)
-        # self.physics = Physics(self)
-
-        # surf_bottom = pygame.image.load('./Assets/Blocks/dirt.png').convert_alpha()
-        # surf = pygame.image.load('./Assets/Blocks/grass_side.png').convert_alpha()
-        # surf_top = pygame.image.load('./Assets/Blocks/grass_top.png').convert_alpha()
-        
-        # surf = pygame.transform.flip(surf,False,True)
-
-        
-        # self.tex = self.ctx.texture_array((surf.get_width(),surf.get_height(),3),4,
-        #                         surf_top.get_view('1').raw +surf.get_view('1').raw+surf_bottom.get_view('1').raw
-        #                        )
-        # self.tex.swizzle = 'BGRA'
-        # self.tex.anisotropy = 8
-        # self.tex.build_mipmaps()
-        # self.tex.filter = mgl.LINEAR_MIPMAP_LINEAR,mgl.NEAREST
-        # self.program['tex'] = 3
-        # self.tex.use(3)
-        # self.program['textures'] = np.array([0,2,1,1,1,1],np.int32)
-        # self.chunk_manager.addEntity(self.player)
-
-        # self.cube = Cube((-1,-1,-1),self.program,self.ctx)
-        # self.program['m_model'].write(glm.translate(position)) #type: ignore
-        # self.program['m_proj'].write(self.camera.m_projection) #type: ignore
-        # self.program['m_view'].write(self.camera.m_view) #type: ignore
 
         self.fpsqueue = deque(maxlen=20)
         self.fps_sum = 0

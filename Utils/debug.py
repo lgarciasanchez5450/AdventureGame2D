@@ -65,6 +65,13 @@ def model_function(func:Callable,xs:np.ndarray):
     pyplot.show()
 from time import perf_counter
 class Tracer:
+    class MutableString: 
+        def __init__(self):
+            self.s= ''
+        def __iadd__(self,other):
+            self.s += other
+            return self
+        def get(self): return self.s
     singleton = None
     @classmethod
     def new(cls):
@@ -73,11 +80,23 @@ class Tracer:
     def __new__(cls):
         if Tracer.singleton is None:
             Tracer.singleton = object.__new__(cls)
+            Tracer.singleton.calls = deque()
+            Tracer.singleton.running = True
         return Tracer.singleton
         
     def __init__(self):
-        self.calls:deque[tuple[int,float,str]] = deque()
-        self.running = False
+        self.calls:deque[tuple[int,float,str]] 
+        self.running:bool
+
+
+    if __debug__:
+        def addDebug(self,info:str):
+            if len(self.calls) == 0:
+                pass
+            else:
+                self.calls.append((2,perf_counter(),info))
+    else:
+        def addDebug(self,info:str): ...
 
     def trace(self,func:Callable):
         if __debug__:
@@ -125,14 +144,16 @@ class Tracer:
         def draw(start_index:int):
             screen.fill('white')
             assert calls[start_index][0] == 0
-            stack:list[tuple[float,str]] = [calls[start_index][1:]]
+
+            stack:list[tuple[float,str,Tracer.MutableString]] = [calls[start_index][1:] + (Tracer.MutableString(),)]
             i = start_index + 1
-            
             while i < len(calls):
                 cur = calls[i]
                 
                 if cur[0] == 0: 
-                    stack.append(cur[1:])
+                    stack.append(cur[1:] + (Tracer.MutableString(),))
+                elif cur[0] == 2:
+                    stack[-1][2].__iadd__(cur[2])
                 elif not stack:
                     print('not that bad')
                 elif stack[-1][1] == cur[2]:
@@ -150,9 +171,14 @@ class Tracer:
                         t_suf = 'millis'
                     # print(left_time,right_time,start_time)
                     # print((start_x,y,end_x-start_x,height))
+              
                     pygame.draw.rect(screen,get_color(cur[2]),(start_x,y,end_x-start_x,height))
                     screen.blit(render_string(cur[2]), (start_x,y))
                     screen.blit(render_string(str(round(d_time,2))+t_suf), (start_x,y+10))
+                    current_info = stack[-1][2].get()
+                    if current_info:
+                        if end_x-start_x > font.size(current_info)[0]:
+                            screen.blit(render_string(current_info),(start_x,y+20))
                     # End Draw Code
                     stack.pop()
                     

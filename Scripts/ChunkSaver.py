@@ -1,10 +1,9 @@
 import typing
 from Utils.Async.AsyncManager import AsyncManager,read_async
-from Scripts.Chunk import Chunk 
 from Utils.lzip import compress, decompress
-
+import Engine
 if typing.TYPE_CHECKING:
-    from Scripts.ChunkManager import ChunkManager
+    from Scenes.World import Chunk
 import os
 
 # def read_async(read:list[str],read_out:list[tuple[str,bytes]]):
@@ -22,12 +21,13 @@ def read_and_decompress(path:str):
     return decompress(b)
 
 class ChunkSaver:
-    __slots__ = 'dirpath','queued','chunks_saved','read_async_manager'
+    # __slots__ = 'dirpath','queued','chunks_saved','read_async_manager'
     def __init__(self,dirpath:str):
+        self.resource_manager = Engine.ResourceManager('Temp')
         self.dirpath = dirpath
         os.makedirs(self.dirpath,exist_ok=True)
-        self.queued:list[Chunk] = [] #type: ignore
-        self.chunks_saved:dict[tuple[int,int,int],int] = {}
+        self.queued:list[Chunk] = []
+        self.chunks_saved:dict[tuple[int,int],int] = {}
         self.read_async_manager = AsyncManager()
 
     def update(self):      
@@ -35,19 +35,20 @@ class ChunkSaver:
             if not self.read_async_manager.is_done():
                 self.read_async_manager.update_loop()
             else: break
+        
         for i in range(3):
             if not self.queued: break
             chunk = self.queued[-1]
             if chunk.status == ChunkStatus.GENERATED:
                 self.queued.pop()
-                filename = f'{chunk.pos[0]}l{chunk.pos[1]}l{chunk.pos[2]}'
+                filename = f'{chunk.pos[0]}l{chunk.pos[1]}l'
                 self.chunks_saved[chunk.pos] = -1
                 with open(os.path.join(self.dirpath,filename),'wb+') as file:
                     file.write(compress(serialize(chunk))) 
                     
             
-    def savechunk(self,chunk:Chunk): 
-        self.chunks_saved[chunk.pos] = len(self.queued)
+    def savechunk(self,chunk:Chunk,cpos:tuple[int,int]): 
+        self.chunks_saved[cpos] = len(self.queued)
         self.queued.append(chunk)
 
     def getchunk(self,cpos:tuple[int,int,int]) -> Chunk: 
