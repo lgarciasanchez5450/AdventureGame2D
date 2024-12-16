@@ -1,14 +1,9 @@
-from Scripts.Player import Player
-from Scripts.ChunkManager import ChunkManager
-from Scripts.Physics import Physics
-from Scripts.Camera import Camera2D
 from Engine.SceneTransitions.BaseTransition import BaseTransition
 import pygame
 import numpy as np
 import pygame as pg
 import moderngl as mgl
 from Utils.debug import Tracer
-import glm
 import typing
 if typing.TYPE_CHECKING:
     from Engine.Engine import Engine
@@ -22,7 +17,6 @@ class BaseScene:
     def stop(self) -> BaseTransition: '''Once called, the next frame will not be this scene. Should *not* release all resources''';...
     def release(self): '''Called on Engine cleanup, *should* release all resources'''
 
-import moderngl as mgl
 
 
 class SampleScene(BaseScene):

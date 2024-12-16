@@ -50,18 +50,21 @@ class LayeredOpenSimplex(object):
         return n / t
 
     def noise2array(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
-        x *= float(self.scale)
-        y *= float(self.scale)
+        x = x * self.scale 
+        y = y * self.scale 
         n = self.simplexes[0].noise2array(x,y) 
         p = self.persistance
+        z = self.lacunarity
         t = 1
         for simplex in self.simplexes[1:]:
-            n += simplex.noise2array(x,y) * p               
+            n += simplex.noise2array(x*z,y*z) * p               
             t += p
-            x *= self.lacunarity
-            y *= self.lacunarity
+            z *= self.lacunarity
             p *= self.persistance
-        return n / t
+            # x *= self.lacunarity
+            # y *= self.lacunarity
+        n /= t
+        return n
     def noise3(self, x: float, y: float, z: float) -> float: 
         x *= self.scale
         y *= self.scale

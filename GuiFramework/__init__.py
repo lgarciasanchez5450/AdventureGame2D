@@ -1189,8 +1189,7 @@ class Space:
     self.sub_spaces.append(new)
     return new
 
-base_layer = Layer((0,0))
-
+ 
 def minimize(): '''Minimize screen'''; return display.iconify()
 
 def init(size:tuple,name:str = 'pygame window',flags = 0,**kwargs) -> Surface:
@@ -1203,7 +1202,6 @@ def init(size:tuple,name:str = 'pygame window',flags = 0,**kwargs) -> Surface:
     if size[1] == 0: size = (size[0],MONITOR_HEIGHT)
     screen = display.set_mode(size,flags,**kwargs)
     display.set_caption(name)
-  scrap.init()
   return screen
 
 def setMinScreenSize(x:int,y:int) -> None:

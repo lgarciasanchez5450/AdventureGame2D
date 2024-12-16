@@ -4,11 +4,9 @@ gc.disable()
 import pygame
 pygame.init()
 
-from Engine.Engine import GameApp
+from GameApp import GameApp
 from MainMenu import MainMenu
-import Window
 
-window = Window.window = Window.Window((500,500))
 pygame.display.set_caption('Game Title')
 
 
@@ -23,4 +21,3 @@ while True:
 
 
 pygame.quit()
-window.close()

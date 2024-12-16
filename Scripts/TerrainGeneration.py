@@ -1,133 +1,67 @@
-try:
-    from Scripts import Biome, Block
-    from Scripts.Chunk import Chunk #type: ignore
-except: pass
 import typing
+import numpy as np
 from collections import deque
-if typing.TYPE_CHECKING:
-    from Scripts.ChunkManager import ChunkManager
 
-
-
-
-class TerrainGenerator:
-    MAX_CHUNKS_GEN_PER_FRAME = 150
-
-    def __init__(self,chunkmanager:"ChunkManager"):
-        self.chunk_manager = chunkmanager
-        #                                                   nether   |  overworld
-        self.dimension_heights = np.array([float('-inf'),-5000, -1000, -500, 1000,float('inf')],dtype=np.float32)
-        self.queued:deque[Chunk] = deque()
-
-
-    def queueChunk(self,chunk:Chunk):
-        self.queued.append(chunk)
-
-
-        
-    def update(self) -> None:
-        queue = self.queued
-        i = 0
-        while queue and i < self.MAX_CHUNKS_GEN_PER_FRAME:
-            i+=1
-            self.chunk_manager.dirty_chunks.add(generate(queue.popleft(),self.dimension_heights).pos)
+from Scripts.Chunk import Chunk
+from Scripts.Pipeline import PipelineLayer
 
 from Utils.Noise.OpenSimplexLayered import LayeredOpenSimplex,OpenSimplex
+
+def ret_and_clear(c):
+    x = c.copy()
+    c.clear()
+    return x
+
+
 overworld = {
-    "height": LayeredOpenSimplex(0.01,6,2,0.5),
-    "temperature": LayeredOpenSimplex(0.01,3,2,0.5, lambda o : list(range(10,o+10,1))),
-    "rainfall": LayeredOpenSimplex(0.01,3,2,0.5, lambda o : list(range(20,o+20,1))),
-}
-nether = {
-    "terrain": OpenSimplex(3)
+    "height": LayeredOpenSimplex(0.006,3,2,0.5),
+    # "temperature": LayeredOpenSimplex(0.01,3,2,0.5, lambda o : list(range(10,o+10,1))),
+    # "rainfall": LayeredOpenSimplex(0.01,3,2,0.5, lambda o : list(range(20,o+20,1))),
 }
 
-import numpy as np
-# from Utils.Noise import perlin
 
-from Scripts.Chunk import ChunkStatus
-import math
-
-
-
-def generate(chunk:Chunk,dim_heights:np.ndarray):
-    chunk.status = ChunkStatus.GENERATING
-    xs = np.arange(Chunk.SIZE,dtype=np.float64) + chunk.pos[0] * Chunk.SIZE
-    ys = np.arange(Chunk.SIZE,dtype=np.float64) + chunk.pos[1] * Chunk.SIZE
-    zs = np.arange(Chunk.SIZE,dtype=np.float64) + chunk.pos[2] * Chunk.SIZE
-
-    y_avg = (chunk.pos[1] + 0.5) * Chunk.SIZE
-    chunk.dimension = getChunkDimensionality(dim_heights,y_avg)
-    dim = chunk.dimension
-    if 0<=dim<1:
-        chunk.biome[:] = Biome.IN_BETWEEN
-        chunk.blocks = np.empty((Chunk.SIZE,Chunk.SIZE,Chunk.SIZE),np.uint16)
-
-        chunk.blocks[:] = Block.STONE
-    elif 1<=dim<2: #nether
-        blocks = nether["terrain"].noise3array(zs*0.1,ys*0.1,xs*0.1) > 0
-        chunk.blocks = np.empty((Chunk.SIZE,Chunk.SIZE,Chunk.SIZE),np.uint16)
-
-        chunk.blocks[:] = Block.AIR
-        chunk.blocks[blocks] = Block.NETHERSTONE
-        chunk.biome[:] = Biome.NETHER_BIOME
-    elif 2<= dim<3: #transition between nether and overworld
-        noise = nether['terrain'].noise3array(xs,zs,ys)
-        netherstone = (noise+1)/2 > (dim%1)
-        holes = noise < (-(dim%1))
-        
-        chunk.biome[:] = Biome.IN_BETWEEN
-        chunk.blocks = np.empty((Chunk.SIZE,Chunk.SIZE,Chunk.SIZE),np.uint16)
-        chunk.blocks[netherstone] = Block.NETHERSTONE
-        chunk.blocks[~netherstone] = Block.STONE
-        chunk.blocks[holes] = Block.AIR     
-    elif 3<=dim<4: #overworld
-        height = overworld['height'].noise2array(xs,zs) * 10
-        # temperature = overworld['temperature'].noise2array(xs,zs)
-        # rainfall = overworld['rainfall'].noise2array(xs,zs) 
-        chunk.biome[:] = Biome.PLAINS
-        if np.max(height) < np.min(ys):
-            chunk.blocks = None
-        else:
-            chunk.blocks = np.empty((Chunk.SIZE,Chunk.SIZE,Chunk.SIZE),np.uint16)
-            broadcast_heightmap(height,ys,chunk.blocks)
-
-    else:
-        chunk.biome[:] = Biome.IN_BETWEEN
-        chunk.blocks = None
-
-    # chunk.blocks[:] = Block.AIR
-    # chunk.blocks[:,0,:] = 1
-    # chunk.blocks[0,1,0] = 1    
-    # chunk.blocks[-1,1,-1] = 1    
     
+class NewTerrainLayer(PipelineLayer[tuple[int,int],tuple[np.ndarray,np.ndarray,np.ndarray]]):
+    def step(self,cpos:tuple[int,int]):
+        xs = np.arange(Chunk.size) + cpos[0] * Chunk.size
+        ys = np.arange(Chunk.size) + cpos[1] * Chunk.size
+        return xs,ys,overworld['height'].noise2array(xs,ys).T
 
-    chunk.status = ChunkStatus.GENERATED
-    return chunk
+class TerrainGen(PipelineLayer[tuple[int,int],Chunk]):
+    @staticmethod
+    def height_to_block(height:np.ndarray):
+        # normalize to [0,1]
+        height = (height + 1) / 2
+        arr = np.empty_like(height,dtype=np.uint16)
+        water_height = 0.5
+        arr[height <water_height] = 1
+        arr[np.logical_not(height <water_height)] = 2
+        return arr
+    
+    def __init__(self,callback:typing.Callable[[typing.Mapping[tuple[int,int],Chunk]],typing.Any]):
+        super().__init__(callback)
+        self.dependency_terrain_input:dict[tuple[int,int],tuple[np.ndarray,np.ndarray,np.ndarray]] = dict()
+        self.dependency_terrain:NewTerrainLayer = NewTerrainLayer(self.dependency_terrain_input.update)
+        self.current = None
 
-from numpy import typing as nptyping
+    def declareDependencies(self, key: tuple[int, int]):
+        self.dependency_terrain.addWork(key)
+
+    def updateDependencies(self):
+        self.dependency_terrain.update()
+
+    def step(self,current:tuple[int,int]):
+        terrain = self.dependency_terrain_input.get(current)
+        #other dependencies go  here
+
+        #make sure we have the dependencies we need for this chunk
+        if terrain is not None:
+            #safe to proceed
+            xs,ys,height = terrain
+            c = Chunk.noinit()
+            c.array = self.height_to_block(height) #type: ignore
+            return c
 
 
-def getChunkDimensionality(dim_heights:nptyping.NDArray[np.float32],y:float):
-    for i in range(len(dim_heights)-1):
-        if np.isinf(dim_heights[i]):
-            #dim_heights[i] must be -inf
-            if y < dim_heights[i+1]:
-                dist_from_border:float = np.abs(y - dim_heights[i+1])
-                decimal = dist_from_border / (dist_from_border + 100)
-                return 1 - decimal
-        elif np.isinf(dim_heights[i+1]):
-            if y > dim_heights[i]:
-                dist_from_border:float = np.abs(y - dim_heights[i])
-                decimal = dist_from_border / (dist_from_border + 100)
-                return i + decimal
-        else:
-            t:float = (y - dim_heights[i])/(dim_heights[i+1]-dim_heights[i])
-            if 0<=t <=1:
-                return i + t
-    return -1
 
-def broadcast_heightmap(heightmap:np.ndarray,ys:np.ndarray,out:np.ndarray):
-    chunk_size = ys.size
-    for y in range(chunk_size):
-        out[:,y,:] = heightmap.T > ys[y]
+

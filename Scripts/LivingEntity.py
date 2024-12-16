@@ -1,6 +1,6 @@
 
 import glm
-from Scripts.Entity import Entity
+from Entities.Entity import Entity
 from Constants import Damage
 
 class AliveEntity(Entity):

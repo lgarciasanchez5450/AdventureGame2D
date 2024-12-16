@@ -2,7 +2,7 @@ import typing
 import glm
 import moderngl as mgl
 from Scripts.Chunk import Chunk
-from Scripts.Entity import Entity
+from Scripts.Entities.Entity import Entity
 import numpy as np
 if typing.TYPE_CHECKING:
     from Engine.Scene import Scene

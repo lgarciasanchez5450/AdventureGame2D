@@ -1,106 +1,161 @@
 import typing
-from Utils.Async.AsyncManager import AsyncManager,read_async
-from Utils.lzip import compress, decompress
 import Engine
-if typing.TYPE_CHECKING:
-    from Scenes.World import Chunk
-import os
+import numpy as np
+from Utils import lzip
+from Entities.Entity import Entity
+from Entities.Entity import Block
+       
 
-# def read_async(read:list[str],read_out:list[tuple[str,bytes]]):
-#     import time
-#     while True:
-#         for r in read:
-#             with open(r,'rb') as file:
-#                 read_out.append((r,file.read()))
+
+
+dtype_from_string = {
+    'uint8':np.uint8,
+    'uint16':np.uint16,
+    'uint32':np.uint32,
+    'uint64':np.uint64,
+    'int8':np.int8,
+    'int16':np.int16,
+    'int32':np.int32,
+    'int64':np.int64,
+    'float16':np.float16,
+    'float32':np.float32,
+    'float64':np.float64,
+}
+string_from_dtype = {t:s for s,t in dtype_from_string.items()}
+assert len(string_from_dtype)==len(dtype_from_string)
+
+class Chunk:
+    @staticmethod
+    def serialize(
+        terrain:np.ndarray,
+        blocks:list[Block],
+        entities:list[Entity],
+    ) -> bytes:
         
+        a = terrain.tobytes('C')
+        b_ = [Block.serialize(x) for x in blocks]
+        c_ = [Entity.serialize(c) for c in entities]
+        sbytessize = 4
+        header = f'dtype={string_from_dtype[terrain.dtype]},blocks={len(b_)},entities={len(c_)},sbytessize={sbytessize}'.encode('ascii')
+        b = bytearray()
+        for sblock in b_:
+            h = len(sblock).to_bytes(sbytessize,'big',signed=False)
+            b.extend(h)
+            b.extend(sblock)
+        c = bytearray()
+        for sentity in c_:
+            h = len(sentity).to_bytes(sbytessize,'big',signed=False)
+            c.extend(h)
+            c.extend(sentity)
+        return header + b'\n\r' + len(a).to_bytes(sbytessize,'big',signed=False)+a+b+c
+    
+    @staticmethod
+    def deserialize(bin:bytes) -> tuple[np.ndarray,list[Block],list[Entity]]:
+        def p(b:str) -> list[str]:
+            return b.split('=',1)
+        header,data = bin.split(b'\n\r',1)
+        headers = {k:v for k,v in map(p,header.decode('ascii').split(','))}
+        dtype = dtype_from_string[headers['dtype']]
+        sbytessize = int(headers['sbytessize'])
+        num_entities = int(headers['entities'])
+        num_blocks= int(headers['blocks'])
 
-def read_and_decompress(path:str):
+        #split up the data
+        #ORDER: terrain, blocks, entities
+        size,data = int.from_bytes(data[:sbytessize],'big',signed=False),data[sbytessize:]
+        terrain_,data = data[:size],data[size:]
+        b_:list[bytes] = []
+        for i in range(num_blocks):
+            size,data = int.from_bytes(data[:sbytessize],'big',signed=False),data[sbytessize:]
+            x,data = data[:size],data[size:]        
+            b_.append(x)
+        c_:list[bytes] = []
+        for i in range(num_entities):
+            size,data = int.from_bytes(data[:sbytessize],'big',signed=False),data[sbytessize:]
+            x,data = data[:size],data[size:]        
+            c_.append(x)
+
+        terrain = np.frombuffer(terrain_,dtype)
+        b = [Block.deserialize(x) for x in b_]
+        c = [Entity.deserialize(x) for x in c_] 
+
+
+        
+        return terrain,b,c
+
+
+def loadChunk(path:str) -> bytes:
     with open(path,'rb') as file:
-        b = file.read()
-    yield 
-    return decompress(b)
+        return file.read()
 
+
+    
 class ChunkSaver:
-    # __slots__ = 'dirpath','queued','chunks_saved','read_async_manager'
     def __init__(self,dirpath:str):
-        self.resource_manager = Engine.ResourceManager('Temp')
-        self.dirpath = dirpath
-        os.makedirs(self.dirpath,exist_ok=True)
-        self.queued:list[Chunk] = []
-        self.chunks_saved:dict[tuple[int,int],int] = {}
-        self.read_async_manager = AsyncManager()
+        self.resource_manager_t = Engine.ResourceManager(dirpath)
+        self.resource_manager_t.load_hooks = {'chk':loadChunk}
 
-    def update(self):      
-        for i in range(5):
-            if not self.read_async_manager.is_done():
-                self.read_async_manager.update_loop()
-            else: break
+        self.to_save:dict[tuple[int,int],Chunk] = {}
+        self.saved:set[tuple[int,int]] = set()
+        self.to_load:dict[tuple[int,int],Chunk] = {}
         
-        for i in range(3):
-            if not self.queued: break
-            chunk = self.queued[-1]
-            if chunk.status == ChunkStatus.GENERATED:
-                self.queued.pop()
-                filename = f'{chunk.pos[0]}l{chunk.pos[1]}l'
-                self.chunks_saved[chunk.pos] = -1
-                with open(os.path.join(self.dirpath,filename),'wb+') as file:
-                    file.write(compress(serialize(chunk))) 
-                    
-            
-    def savechunk(self,chunk:Chunk,cpos:tuple[int,int]): 
-        self.chunks_saved[cpos] = len(self.queued)
-        self.queued.append(chunk)
+        for file in self.resource_manager_t.listDir('.'):
+            if file.endswith('.chk'):
+                x,y = file.removesuffix('.chk').split('-')
+                self.saved.add((int(x),int(y)))
 
-    def getchunk(self,cpos:tuple[int,int,int]) -> Chunk: 
-        index = self.chunks_saved[cpos]
-        if index != -1:
-            chunk = self.queued[index]
-            if chunk is not None:
-                return chunk
-        filename = 'l'.join(map(str,cpos))
-        with open(os.path.join(self.dirpath,filename),'rb') as file:
-            return deserialize((file.read()),cpos)
-            
-    def getchunkasync(self,cpos:tuple[int,int,int]) -> Chunk:
-        index = self.chunks_saved[cpos]
-        if index != -1:
-            return self.queued[index] #type: ignore
+    def release(self):
+        self.resource_manager_t.release()
+        
+    def step_load(self):
+        cpos,chunk = self.to_load.popitem()
+        filename = f'{cpos[0]}-{cpos[1]}.chk'
+        with self.resource_manager_t.loadAsset(filename,lambda path: open(path,'rb')) as file: ...
+            # deserialize(lzip.decompress(file.read()),chunk)
+# 
+    def save(self,terrain:np.ndarray,blocks:list[Block],entities:list[Entity],cpos:tuple[int,int]): 
+        filename = f'{cpos[0]}-{cpos[1]}.chk'
+        serialized = Chunk.serialize(terrain,blocks,entities)
+        compressed = lzip.compress(serialized)
+        self.resource_manager_t.saveAsset(filename,compressed)
+        self.saved.add(cpos)
+
+    def load(self,cpos:tuple[int,int]):
+        filename = f'{cpos[0]}-{cpos[1]}.chk'
+        self.saved.remove(cpos)
+        compressed:bytes = self.resource_manager_t.loadAsset(filename)
+        serialized = lzip.decompress(compressed)
+        terrain,blocks,entities = Chunk.deserialize(serialized)
+        return terrain, blocks,entities
+        
+
+
+    def get(self,cpos:tuple[int,int]) -> 'Chunk': 
+        chunk = self.to_save.pop(cpos,None)
+        if chunk is not None:
+            return chunk
+        filename = f'{cpos[0]}-{cpos[1]}.chk'
+        return self.resource_manager_t.loadAsset(filename)
+        
+    def getAsync(self,cpos:tuple[int,int]) -> 'Chunk':
+        chunk = self.to_save.pop(cpos,None)
+        if chunk is not None:
+            return chunk
         else:
-            filename = 'l'.join(map(str,cpos))
-            c = Chunk(cpos)
-            self.read_async_manager.submit_async(read_and_decompress(os.path.join(self.dirpath,filename)),lambda bytes: deserialize(bytes,cpos,c))
-            return c
+            # c = Chunk(cpos)
+            # self.to_load[cpos]=c
+            return Chunk()
         
-    def haschunk(self,cpos:tuple[int,int,int]):
-        return cpos in self.chunks_saved
+    def haschunk(self,cpos:tuple[int,int]):
+        return cpos in self.saved or cpos in self.to_save
 
 
-def serialize(chunk:Chunk) -> bytes:
-    dimension = chunk.dimension
-    b_blocks = b'' if chunk.blocks is None else chunk.blocks.tobytes('C') 
-    b_biomes = chunk.biome.tobytes('C')   
-    return str(dimension).encode() + b';' +(len(b_blocks)).to_bytes(4)+b_blocks+(len(b_biomes)).to_bytes(4)+b_biomes
+# def serialize(chunk:'Chunk') -> bytes:
+#     b_ground = chunk.array.tobytes('C')
+#     return b_ground
 
-from Scripts.Chunk import ChunkStatus
-def deserialize(b:bytes,pos:tuple[int,int,int],chunk:typing.Optional[Chunk] = None) -> Chunk:
-    i = b.find(b';')
-    assert i != -1
-    dim = float(b[:i].decode())
-    b = b[i+1:]
-    len_blocks = int.from_bytes(b[:4])
-    blocks = b[4:len_blocks+4]
-    b = b[len_blocks+4:]
-    len_biomes = int.from_bytes(b[:4])
-    biomes = b[4:len_biomes+4]
-    import numpy as np
-    if chunk is None:
-        chunk = Chunk(pos)
-    chunk.status = ChunkStatus.GENERATED
-    if blocks == b'':
-        chunk.blocks = None
-    else:
-        chunk.blocks = np.empty((Chunk.SIZE,Chunk.SIZE,Chunk.SIZE),np.uint16)
-        chunk.blocks[:] = np.frombuffer(blocks,dtype=np.uint16).reshape((Chunk.SIZE,Chunk.SIZE,Chunk.SIZE))
-    chunk.biome[:] = np.frombuffer(biomes,dtype=np.uint8).reshape((Chunk.SIZE//2,Chunk.SIZE//2,Chunk.SIZE//2))
-    chunk.dimension = dim
-    return chunk
+# def deserialize(b:bytes,chunk:typing.Optional['Chunk']=None) -> 'Chunk':
+#     ground = np.frombuffer(b)
+#     if chunk is None: chunk = Chunk.noinit()
+#     chunk.array = ground
+#     return chunk

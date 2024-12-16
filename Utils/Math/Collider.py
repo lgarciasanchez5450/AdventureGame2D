@@ -125,6 +125,8 @@ class Collider:
 	
 
 
+
+
 class Collider2D:
 	__slots__ = 'c','s'
 	def __init__(self,position:glm.vec2,size:tuple[float,float]|glm.vec2) -> None:

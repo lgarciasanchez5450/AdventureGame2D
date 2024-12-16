@@ -2,8 +2,8 @@ from typing import Literal
 from ...  import Window
 from Utils.Math.Collider import Collider
 from Utils.Math.Vector import Vector2
-from ..Static import event_WINDOWRESIZE
-from .Constants import BLOCK_SIZE,HALFWIDTH,HALFHEIGHT,WIDTH,HEIGHT
+# from ..Static import event_WINDOWRESIZE
+# from .Constants import BLOCK_SIZE,HALFWIDTH,HALFHEIGHT,WIDTH,HEIGHT
 from .InputGame import m_pos_normalized
 from .Game_Typing import ImplementsDraw, assert_type
 import pygame
@@ -36,7 +36,7 @@ max_camera_distance = 2
 min_camera_distance = 0
 width:int
 height:int
-@event_WINDOWRESIZE.register
+# @event_WINDOWRESIZE.register
 def onResize(_width,_height):
     print("VERY IMPORTATNT ########################################################")
     global width,height,screen_size,HALFWIDTH,HALFHEIGHT

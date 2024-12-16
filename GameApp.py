@@ -5,6 +5,9 @@ class Application:
     def run(self): ...
 
 
+
+
+
 class GameApp(Application): 
     def __init__(self) -> None:
         self.engine = Engine.Engine()
@@ -20,7 +23,6 @@ class GameApp(Application):
             return False
         return self.engine.Run()
    
-        
 if __name__ == '__main__':
     app:Application = GameApp()
     print('Game Instantiated')

@@ -5,11 +5,11 @@ from pygame import event
 ExitMainMenuEvent = event.Event(event.custom_type())
 
 class MainMenu: 
-    def __init__(self,window:Window|None = None) -> None:
-        self.window = window or Window((500,500))
-        self.window.setName('Game')
-        self.base_layer = Layer(self.window.size())
-        self.base_layer.resize(self.window.size())
+    def __init__(self) -> None:
+        if pygame.display.get_active()==0:
+            self.screen = pygame.display.set_mode((500,500))
+        pygame.display.set_caption('Main Menu')
+        self.base_layer = Layer(display.get_window_size())
         self.base_layer.space.addObjects(
             BackgroundColor((0,50,50)),
             Aligner(
@@ -33,14 +33,12 @@ class MainMenu:
             elif ExitMainMenuEvent.type in input.Events:
                 return self.close(2)
             self.base_layer.update(input)
-            self.base_layer.draw(self.window.ui_surface)
+            self.base_layer.draw(pygame.display.get_surface())
             Clock().tick(30)
-            self.window.draw()
             pygame.display.flip()
 
     def close(self,ret_code:int):
         base_layer.space.clear()
-        self.window.close()
         return ret_code
     
 
