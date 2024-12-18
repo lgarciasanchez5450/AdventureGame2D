@@ -1,11 +1,9 @@
 import typing
 import numpy as np
 from collections import deque
+from Lib.Utils.Pipeline import PipelineLayer
 
-from Scripts.Chunk import Chunk
-from Scripts.Pipeline import PipelineLayer
-
-from Utils.Noise.OpenSimplexLayered import LayeredOpenSimplex,OpenSimplex
+from Lib.Utils.Noise.OpenSimplexLayered import LayeredOpenSimplex,OpenSimplex
 
 def ret_and_clear(c):
     x = c.copy()
@@ -22,12 +20,17 @@ overworld = {
 
     
 class NewTerrainLayer(PipelineLayer[tuple[int,int],tuple[np.ndarray,np.ndarray,np.ndarray]]):
+    __slots__ = 'chunk_size'
+    def __init__(self,chunk_size:int, callback: typing.Callable[[typing.Mapping[tuple[int, int], tuple[np.ndarray, np.ndarray, np.ndarray]]], typing.Any] | None = None):
+        super().__init__(callback)
+        self.chunk_size = chunk_size
+
     def step(self,cpos:tuple[int,int]):
-        xs = np.arange(Chunk.size) + cpos[0] * Chunk.size
-        ys = np.arange(Chunk.size) + cpos[1] * Chunk.size
+        xs = np.arange(self.chunk_size) + cpos[0] * self.chunk_size
+        ys = np.arange(self.chunk_size) + cpos[1] * self.chunk_size
         return xs,ys,overworld['height'].noise2array(xs,ys).T
 
-class TerrainGen(PipelineLayer[tuple[int,int],Chunk]):
+class TerrainGen(PipelineLayer[tuple[int,int],np.ndarray]):
     @staticmethod
     def height_to_block(height:np.ndarray):
         # normalize to [0,1]
@@ -38,10 +41,11 @@ class TerrainGen(PipelineLayer[tuple[int,int],Chunk]):
         arr[np.logical_not(height <water_height)] = 2
         return arr
     
-    def __init__(self,callback:typing.Callable[[typing.Mapping[tuple[int,int],Chunk]],typing.Any]):
+    def __init__(self,chunk_size:int,callback:typing.Callable[[typing.Mapping[tuple[int,int],np.ndarray]],typing.Any]|None=None):
         super().__init__(callback)
+        self.chunk_size = chunk_size
         self.dependency_terrain_input:dict[tuple[int,int],tuple[np.ndarray,np.ndarray,np.ndarray]] = dict()
-        self.dependency_terrain:NewTerrainLayer = NewTerrainLayer(self.dependency_terrain_input.update)
+        self.dependency_terrain:NewTerrainLayer = NewTerrainLayer(chunk_size,self.dependency_terrain_input.update)
         self.current = None
 
     def declareDependencies(self, key: tuple[int, int]):
@@ -58,9 +62,7 @@ class TerrainGen(PipelineLayer[tuple[int,int],Chunk]):
         if terrain is not None:
             #safe to proceed
             xs,ys,height = terrain
-            c = Chunk.noinit()
-            c.array = self.height_to_block(height) #type: ignore
-            return c
+            return self.height_to_block(height)
 
 
 

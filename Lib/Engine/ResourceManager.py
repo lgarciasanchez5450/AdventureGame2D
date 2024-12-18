@@ -2,9 +2,9 @@ import os
 import pygame
 import typing
 
-from Utils.strutils import split
+from Lib.Utils.strutils import split
 
-from Utils.debug import Tracer
+from Lib.Utils.debug import Tracer
 
 Directory = dict[str,typing.Union['Directory',pygame.Surface]]
 T = typing.TypeVar('T')

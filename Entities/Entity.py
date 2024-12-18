@@ -1,11 +1,16 @@
 import typing
 import glm
-from Utils.Math.Collider import Collider2D
+from Lib.Utils.Math.Collider import Collider2D
 esubs:dict[str,type['Entity']] = {}
 class Entity:
-    def __init_subclass__(cls) -> None: 
+    def __init_subclass__(cls,**kwargs) -> None: 
+        if kwargs.get('abstract') is True: return 
         if cls.__name__ in bsubs: raise RuntimeError("No two subclasses may have the same name!")
         esubs[cls.__name__] = cls
+        assert hasattr(cls,'deserialize')
+        assert hasattr(cls,'serialize')
+        
+
         
     __slots__ = 'renderid','position','vel','collider','mass','dead'
     def __init__(self,position:tuple[float,float],size:tuple[float,float]|glm.vec2,renderid:int=0) -> None:

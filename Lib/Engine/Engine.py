@@ -3,16 +3,15 @@ import pygame.constants as const
 from pygame.time import Clock
 import pygame
 # from GuiFramework import Input
-
-from Engine.SceneTransitions.BaseTransition import BaseTransition
-from Engine.Scene import BaseScene
-from Engine.ResourceManager import ResourceManager
+from .SceneTransitions.BaseTransition import BaseTransition
+from .Scene import BaseScene
+from .ResourceManager import ResourceManager
+from . import Settings
 # from Scripts.ProgramManager import ProgramManager
 
-from Utils.debug import Tracer
-from Utils.events import EventChannel
-from Utils.Time import Time
-import Engine.Settings as Settings
+from Lib.Utils.debug import Tracer
+from Lib.Utils.events import EventChannel
+from Lib.Utils.Time import Time
   
 
 class Engine:
@@ -126,7 +125,6 @@ class Engine:
             for scene in self.scenes.values():
                 scene.release()
             self.resource_manager.release()
-            
         else:
             print("Engine Exited without cleanup.")
         if __debug__:

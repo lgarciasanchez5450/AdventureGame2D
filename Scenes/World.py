@@ -1,16 +1,15 @@
 import typing
-import Engine
+from Lib import Engine
 import pygame
 import glm
 import numpy as np
-from Engine.SceneTransitions.BaseTransition import BaseTransition
-from Utils.debug import Tracer
+from Lib.Engine.SceneTransitions.BaseTransition import BaseTransition
+from Lib.Utils.debug import Tracer
 from pygame import constants as const
 from Entities.Entity import Entity, Block
-from Scripts.Chunk import Chunk
-from Scripts.ChunkSaver import ChunkSaver
-from Scripts.TerrainGeneration import TerrainGen
-from Scripts.WorldManager import WorldManager
+from Scenes.SceneComponents.ChunkSaver import ChunkSaver
+from Scenes.SceneComponents.TerrainGeneration import TerrainGen
+from Scenes.SceneComponents.WorldManager import WorldManager
 
 class DrawComponent(typing.Protocol):
     position:glm.vec2
@@ -49,7 +48,10 @@ class World(Engine.BaseScene):
 
         self.invalid_chunk = np.zeros((8,8),dtype = np.uint8)
         
-        self.world = WorldManager(8)        
+        self.world = WorldManager(8)
+        self.world.setTerrainGenerationPipeline(TerrainGen(8))
+
+
         
         tiles = self.engine.resource_manager.getDir('NewTiles')
         null_tex = pygame.transform.scale(self.engine.resource_manager.getTex('Ground/null.png'),(32,32))
@@ -70,10 +72,6 @@ class World(Engine.BaseScene):
     def recalcChunks(self):
         c = glm.ivec2(self.player_pos//8)
         new = {(x,y) for x in range(c.x-3,c.x+4,1) for y in range(c.y-2,c.y+3,1)}
-        
-        # for cpos in new-self.active_chunks:#iterate over new chunks: (chunks that are in the new chunks but not the old ones)
-        #     # load entities
-            ### ^^ now taken care of in the draw function
 
         self.world.loadChunks(new)
         self.world.setActiveChunks(new)
@@ -81,13 +79,12 @@ class World(Engine.BaseScene):
      
 
     def start(self):
-    #    self.layer_entities.addDrawable()
        print('Start called')
 
     def update(self):
         #process events
         dt = self.engine.time.dt
-        for event in pygame.event.get(pump=False):
+        for event in self.getEvents():
             if event.type == pygame.QUIT:
                 pygame.event.post(Engine.Settings.ENGINE_CLOSE)
             elif event.type == pygame.WINDOWRESIZED:
@@ -103,7 +100,7 @@ class World(Engine.BaseScene):
         d = keys[const.K_d]
         vel = glm.vec2(d-a,s-w)
         starting_pos = self.player_pos//8
-        self.player_pos += vel * 0.016666
+        self.player_pos += vel * dt
         if self.player_pos//8 != starting_pos:
             self.recalcChunks()
 
@@ -111,20 +108,8 @@ class World(Engine.BaseScene):
         camera_adjust_rate = 0.1 #[0,1]
         self.camera_position += (self.player_pos - self.camera_position) * camera_adjust_rate
 
-        #update order
-        # we start with the invariant that all entities are alive 
-
-        # 1)update all entities 
-      
-        # 2)move and collide entities
-      
-        # 3)do all damages, including explosions
-        
-      
-        # 4)determine which entities are dead
-        # 5)remove dead entities
-        # we end with the invariant that all entities are alive 
-        
+        self.world.update(dt)
+       
 
         #update miscellaneous stuff
         

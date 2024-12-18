@@ -47,6 +47,8 @@ V = typing.TypeVar('V')
 #             self.callback(self.done)
 
 
+
+
 class Pipeline[K,V](typing.Protocol):
     callback:typing.Callable[[typing.Mapping[K,V]],typing.Any]
     def addMuchWork(self,work:typing.Iterable[K]): ...
@@ -57,11 +59,25 @@ class Pipeline[K,V](typing.Protocol):
     def update(self): ...
          
 
+class MissingPipline[K,V]:
+    '''General Pipeline that fits the Pipeline protocol but will only produce dummy results'''
+    def __init__(self,retval:V,callback:typing.Callable[[typing.Mapping[K,V]],typing.Any]|None=None): 
+        self.callback = callback or (lambda x: None)
+        self.retval = retval
+    def addMuchWork(self,work:typing.Iterable[K]): self.callback({k:self.retval for k in work})
+    def addWork(self,one_work:K): self.callback({one_work:self.retval})
+    def declareDependencies(self,key:K): pass
+    def step(self,current:K) -> typing.Optional[V]: pass
+    def updateDependencies(self): pass
+    def update(self): pass
+         
+
 
 class PipelineLayer[K,V](abc.ABC):
     '''Implementation of a one-shot Layer
      One-shot meaning: each pipeline update completes one "unit" of work that is sent out
     '''
+    __slots__ = 'callback','work'
     def __init__(self,callback:typing.Callable[[typing.Mapping[K,V]],typing.Any]|None=None):
         self.callback = callback or (lambda x:None)
         self.work:deque[K] = deque()

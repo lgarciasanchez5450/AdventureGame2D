@@ -1,13 +1,13 @@
-from Engine.SceneTransitions.BaseTransition import BaseTransition
+import typing
 import pygame
 import numpy as np
 import pygame as pg
 import moderngl as mgl
-from Utils.debug import Tracer
-import typing
+from Lib.Utils.debug import Tracer
 if typing.TYPE_CHECKING:
-    from Engine.Engine import Engine
-import Engine.Settings as Settings
+    from Lib.Engine import Engine
+import Lib.Engine.Settings as Settings
+from Lib.Engine.SceneTransitions.BaseTransition import BaseTransition
 from collections import deque
 
 class BaseScene:
@@ -17,6 +17,8 @@ class BaseScene:
     def stop(self) -> BaseTransition: '''Once called, the next frame will not be this scene. Should *not* release all resources''';...
     def release(self): '''Called on Engine cleanup, *should* release all resources'''
 
+    def getEvents(self,eventtype: typing.Union[int, typing.Sequence[int]]| None = None, exclude: list[int] | None = None):
+        return pygame.event.get(eventtype,False,exclude+[Settings.ENGINE] if exclude else Settings.ENGINE) #type: ignore
 
 
 class SampleScene(BaseScene):

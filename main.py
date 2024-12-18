@@ -10,7 +10,7 @@ from MainMenu import MainMenu
 pygame.display.set_caption('Game Title')
 
 
-state = 2
+state = 1
 while True:
     if state == 1:
         state = MainMenu().run()

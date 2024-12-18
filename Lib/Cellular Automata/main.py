@@ -85,9 +85,9 @@ def do_thing(map:np.ndarray):
         map = make_room_step(map)
     map = smooth_dots(map)
     map = remove_bumps(map)
-    map = smooth_dots(map)
-    map = remove_bumps(map)
-    map = remove_infill_step(map)
+    # map = smooth_dots(map)
+    # map = remove_bumps(map)
+    # map = remove_infill_step(map)
 
     return map
 

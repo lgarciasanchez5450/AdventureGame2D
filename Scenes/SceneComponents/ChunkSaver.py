@@ -1,12 +1,9 @@
 import typing
-import Engine
+from Lib import Engine
 import numpy as np
-from Utils import lzip
+from Lib.Utils import lzip
 from Entities.Entity import Entity
 from Entities.Entity import Block
-       
-
-
 
 dtype_from_string = {
     'uint8':np.uint8,
@@ -22,7 +19,12 @@ dtype_from_string = {
     'float64':np.float64,
 }
 string_from_dtype = {t:s for s,t in dtype_from_string.items()}
-assert len(string_from_dtype)==len(dtype_from_string)
+assert len(string_from_dtype)==len(dtype_from_string),'Bad!'
+
+def loadChunk(path:str) -> bytes:
+    with open(path,'rb') as file:
+        return file.read()
+
 
 class Chunk:
     @staticmethod
@@ -83,36 +85,16 @@ class Chunk:
         
         return terrain,b,c
 
-
-def loadChunk(path:str) -> bytes:
-    with open(path,'rb') as file:
-        return file.read()
-
-
-    
 class ChunkSaver:
     def __init__(self,dirpath:str):
         self.resource_manager_t = Engine.ResourceManager(dirpath)
         self.resource_manager_t.load_hooks = {'chk':loadChunk}
-
-        self.to_save:dict[tuple[int,int],Chunk] = {}
         self.saved:set[tuple[int,int]] = set()
-        self.to_load:dict[tuple[int,int],Chunk] = {}
-        
         for file in self.resource_manager_t.listDir('.'):
             if file.endswith('.chk'):
                 x,y = file.removesuffix('.chk').split('-')
                 self.saved.add((int(x),int(y)))
 
-    def release(self):
-        self.resource_manager_t.release()
-        
-    def step_load(self):
-        cpos,chunk = self.to_load.popitem()
-        filename = f'{cpos[0]}-{cpos[1]}.chk'
-        with self.resource_manager_t.loadAsset(filename,lambda path: open(path,'rb')) as file: ...
-            # deserialize(lzip.decompress(file.read()),chunk)
-# 
     def save(self,terrain:np.ndarray,blocks:list[Block],entities:list[Entity],cpos:tuple[int,int]): 
         filename = f'{cpos[0]}-{cpos[1]}.chk'
         serialized = Chunk.serialize(terrain,blocks,entities)
@@ -127,35 +109,9 @@ class ChunkSaver:
         serialized = lzip.decompress(compressed)
         terrain,blocks,entities = Chunk.deserialize(serialized)
         return terrain, blocks,entities
-        
 
-
-    def get(self,cpos:tuple[int,int]) -> 'Chunk': 
-        chunk = self.to_save.pop(cpos,None)
-        if chunk is not None:
-            return chunk
-        filename = f'{cpos[0]}-{cpos[1]}.chk'
-        return self.resource_manager_t.loadAsset(filename)
-        
-    def getAsync(self,cpos:tuple[int,int]) -> 'Chunk':
-        chunk = self.to_save.pop(cpos,None)
-        if chunk is not None:
-            return chunk
-        else:
-            # c = Chunk(cpos)
-            # self.to_load[cpos]=c
-            return Chunk()
-        
     def haschunk(self,cpos:tuple[int,int]):
-        return cpos in self.saved or cpos in self.to_save
+        return cpos in self.saved
 
-
-# def serialize(chunk:'Chunk') -> bytes:
-#     b_ground = chunk.array.tobytes('C')
-#     return b_ground
-
-# def deserialize(b:bytes,chunk:typing.Optional['Chunk']=None) -> 'Chunk':
-#     ground = np.frombuffer(b)
-#     if chunk is None: chunk = Chunk.noinit()
-#     chunk.array = ground
-#     return chunk
+    def release(self):
+        self.resource_manager_t.release()

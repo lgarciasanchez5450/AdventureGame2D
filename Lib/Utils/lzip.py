@@ -107,7 +107,7 @@ if __name__ == '__main__':
         break
     import zlib
     print('Compression Ratio:',len(compress(test))/len(test))
-    print('LZIB Compression Ratio:',len(zlib.compress(test,9))/len(test))
+    print('ZLIB Compression Ratio:',len(zlib.compress(test,9))/len(test))
     import random
     t = bytes(range(8*8*2))+random.randbytes(1_000)
     zcompressed= zlib.compress(t,9)

@@ -1,11 +1,8 @@
-import Engine
+from Lib import Engine
 from Scenes.World import World
 
 class Application:
     def run(self): ...
-
-
-
 
 
 class GameApp(Application): 
@@ -15,7 +12,6 @@ class GameApp(Application):
 
     def createScenes(self):
         return {'scene1':World(self.engine)}
-
     
     def run(self):
         self.screen = Engine.pg.display.set_mode((900,600),Engine.const.RESIZABLE)

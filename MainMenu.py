@@ -1,6 +1,4 @@
-from GuiFramework import *
-from pygame import event
-from Window import Window
+from Lib.GuiFramework import *
 from pygame import event
 ExitMainMenuEvent = event.Event(event.custom_type())
 
@@ -38,7 +36,7 @@ class MainMenu:
             pygame.display.flip()
 
     def close(self,ret_code:int):
-        base_layer.space.clear()
+        self.base_layer.space.clear()
         return ret_code
     
 
