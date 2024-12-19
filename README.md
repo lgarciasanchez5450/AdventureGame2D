@@ -17,6 +17,7 @@ The game is run via main.py
 
 As of December 18, 2024:
 pygount -f summary
+
 ![image](https://github.com/user-attachments/assets/f03995dd-c7f6-4d45-955e-b49159464256)
 
 Contact Me via:
