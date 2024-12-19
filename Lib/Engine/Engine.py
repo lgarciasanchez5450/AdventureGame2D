@@ -1,18 +1,15 @@
-from pygame import display
-import pygame.constants as const
-from pygame.time import Clock
 import pygame
-# from GuiFramework import Input
+from pygame import display
+from pygame.time import Clock
+import pygame.constants as const
+
 from .SceneTransitions.BaseTransition import BaseTransition
 from .Scene import BaseScene
 from .ResourceManager import ResourceManager
 from . import Settings
-# from Scripts.ProgramManager import ProgramManager
 
-from Lib.Utils.debug import Tracer
-from Lib.Utils.events import EventChannel
-from Lib.Utils.Time import Time
-  
+from Lib.Utils.debug import Tracer #TODO find a way to get external dependencies to zero
+from Lib.Utils.Time import Time 
 
 class Engine:
     def __init__(self,resources_dir:str = '') -> None:
@@ -25,16 +22,13 @@ class Engine:
         self.clock = Clock()
         self.time = Time()
         self.tracer = Tracer()
+        self.target_fps = 60
 
         self.sceneCreator = lambda : {}
 
 
-        self.event_channel = EventChannel()
         # Project handler
-        # self.program_manager = ProgramManager(self.ctx)
-        self.scenes:dict[str,BaseScene] = {
-            # 'scene1': Scene(self)
-        }
+        self.scenes:dict[str,BaseScene] = {}
         self.resource_manager = ResourceManager(resources_dir or 'Assets')
         self.active_scene:BaseScene
         self.next_scene:BaseScene|None = None
@@ -61,6 +55,9 @@ class Engine:
 
         
     ## Public Engine API ##
+    def setFPS(self,fps:int):
+        assert fps >= 0
+        self.target_fps = fps
 
     def Start(self) -> bool: 
         '''
@@ -117,7 +114,7 @@ class Engine:
                     cleanup:bool = event.cleanup
                     running = False
             display.flip()
-            self.clock.tick(60)
+            self.clock.tick(self.target_fps)
         #Exited Main Loop
 
         if cleanup:

@@ -2,6 +2,7 @@ import typing
 import glm
 import numpy as np
 import numpy.typing as npt
+from collections import defaultdict
 from Scenes.SceneComponents.Weather import Weather
 from Lib.Utils.Pipeline import Pipeline
 from Lib.Utils.Pipeline import MissingPipline
@@ -9,7 +10,9 @@ from Scenes.SceneComponents.ChunkSaver import ChunkSaver
 from Lib.Utils.Math.Collider import Collider2D
 from Lib.Utils.Math.game_math import collide_chunks2d as _collide
 from Entities.Entity import Entity,Block
+from Scripts.EntityComponents import BaseComponent
 
+T = typing.TypeVar('T',bound=BaseComponent)
 
 type CPOS = tuple[int,int] # Python >=3.12 Specific Syntax
 type POS = CPOS
@@ -33,6 +36,7 @@ class WorldManager:
         self.entity_chunks:dict[CPOS,list[Entity]] = {}
         self.blocks:dict[POS,Block] = {}
         self.big_entities:list[Entity] = []
+        self.e_components:list[dict[int,BaseComponent]] = [{} for _ in range(BaseComponent.i)]
 
         #Settings
         self.time_scale:float = 1.0
@@ -80,9 +84,26 @@ class WorldManager:
         chunks = chunks.intersection(self.terrain_chunks.keys())
         self.to_save.update(chunks)
     
+    ### Entity Component Functions ###
+    def getComponent(self,entity:Entity,component:type[T]) -> T:
+        return self.e_components[component.i][entity.uuid] #type: ignore
+    
+    def getTryComponent(self,entity:Entity,component:type[T]) -> typing.Optional[T]:
+        return self.e_components[component.i].get(entity.uuid) #type: ignore
+    
+    def hasComponent(self,entity:Entity,component:type[T]) -> bool:
+        return component in entity.components
+    
+    def setComponent(self,entity:Entity,component:BaseComponent):
+        entity.components.add(type(component))
+        self.e_components[component.i][entity.uuid] = component
+
+
+    
+
     ### Spawning Functions ###
     def spawnEntity(self,entity:Entity):
-        is_big = glm.any(entity.collider.s/2 >= glm.vec2(self.ebig_threshold)) #type: ignore
+        is_big = any(entity.collider.s/2 >= glm.vec2(self.ebig_threshold)) #type: ignore
         if is_big:
             self.big_entities.append(entity)
             return True
@@ -174,6 +195,10 @@ class WorldManager:
             else:
                 self.entity_chunks[cpos] = [entity]
         for d_entity in dead_entities:
+            # remove their components
+            for comp in d_entity.components:
+                del self.e_components[comp.i][d_entity.uuid]
+            del d_entity.components
             print(f"Entity {d_entity} died.")
         # we end with the invariant that all entities are alive 
         
@@ -201,22 +226,26 @@ class WorldManager:
                 if glm.ivec2(e.position//self.chunk_size).to_tuple()==cpos:
                     entities.append(e)
                     self.big_entities.pop(i)
-        terrain = self.terrain_chunks.pop(cpos)
-        self.c_saver.save(terrain,blocks,entities,cpos)
+        terrain = self.terrain_chunks.pop(cpos)                    
+        self.c_saver.save(terrain,blocks,{entity:[self.e_components[comp.i].pop(entity.uuid) for comp in entity.components] for entity in entities},cpos)
 
     def loadChunkAtomic(self,cpos:CPOS):
         terrain,blocks,entities = self.c_saver.load(cpos)
         self.terrain_chunks[cpos] = terrain
         for block in blocks:
             self.spawnBlock(block)
-        bigs:list[Entity] = []
-        for i in range(len(entities)-1,-1,-1):
-            e = entities[i]
-            if glm.any(e.collider.s/2 >= glm.vec2(self.ebig_threshold)): #type: ignore
-                bigs.append(entities.pop(i))
+        if cpos not in self.entity_chunks:
+            e = self.entity_chunks[cpos] = []
+        else:
+            e = self.entity_chunks[cpos]
+        for entity in entities:
+            if any(entity.collider.s/2 >= glm.vec2(self.ebig_threshold)): #type: ignore
+                self.big_entities.append(entity)
+            else:
+                e.append(entity)
+            for comp in entities[entity]:
+                self.setComponent(entity,comp)     
 
-        self.entity_chunks[cpos] = entities
-        self.big_entities.extend(bigs)
 
     ### Misc Functions ###     
     def release(self):

@@ -1,6 +1,6 @@
 import typing
 def split(string:str,delimiters:typing.Collection[str]):
-    assert list(map(len,delimiters)) == [1] * len(delimiters), 'delimiters can only have one character'
+    assert all(len(c)==1 for c in delimiters), 'delimiters can only have one character'
     word = ''
     out:list[str] = []
     for char in string:

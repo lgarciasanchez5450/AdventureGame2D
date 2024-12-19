@@ -6,6 +6,7 @@ C = TypeVar("C",Color,tuple)
 
 
 class RichCharacter:
+    __slots__ = 'char','color','bold','italic','underlined','strikethrough'
     def __init__(self,text:str,color:tuple[int,int,int]|Color,bold:bool=False,italic:bool = False,underlined:bool=False,strikethrough:bool = False) -> None:
         self.char = text
         self.color = color

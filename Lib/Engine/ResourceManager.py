@@ -15,7 +15,7 @@ class UnknownResource:
         self.path = path
 
 def default_save(path:str,resource:typing.Any):
-    if isinstance(resource,bytes):
+    if isinstance(resource,(bytes,bytearray)):
         b = resource
     else:
         b = str(resource).encode()
@@ -26,6 +26,9 @@ def default_save(path:str,resource:typing.Any):
 
 
 class ResourceManager:
+    ### You know i thought this(having a resource manager) would be a really good idea, but the more I use it the more i realize
+    # that I have to go out of my way to use it and it can be pretty cumbersome to jump through hoops to get any benefits from it.
+    # maybe a rewrite is needed or just strip this out.
     '''
     Method Prefixes:
      * get -> retrieves from preloaded assets

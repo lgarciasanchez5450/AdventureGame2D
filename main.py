@@ -7,9 +7,6 @@ pygame.init()
 from GameApp import GameApp
 from MainMenu import MainMenu
 
-pygame.display.set_caption('Game Title')
-
-
 state = 1
 while True:
     if state == 1:

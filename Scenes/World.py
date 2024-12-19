@@ -1,13 +1,13 @@
 import typing
-from Lib import Engine
 import pygame
 import glm
 import numpy as np
+from Lib import Engine
 from Lib.Engine.SceneTransitions.BaseTransition import BaseTransition
 from Lib.Utils.debug import Tracer
 from pygame import constants as const
 from Entities.Entity import Entity, Block
-from Scenes.SceneComponents.ChunkSaver import ChunkSaver
+from Scripts.EntityComponents import Animation
 from Scenes.SceneComponents.TerrainGeneration import TerrainGen
 from Scenes.SceneComponents.WorldManager import WorldManager
 
@@ -51,12 +51,11 @@ class World(Engine.BaseScene):
         self.world = WorldManager(8)
         self.world.setTerrainGenerationPipeline(TerrainGen(8))
 
-
-        
         tiles = self.engine.resource_manager.getDir('NewTiles')
+        e_tiles = self.engine.resource_manager.getDir('Entities/NewPlayer/PlayerFrontIdle')
         null_tex = pygame.transform.scale(self.engine.resource_manager.getTex('Ground/null.png'),(32,32))
         self.layer_entities = LayerYSort()
-        
+
 
         self.tiles = [null_tex]
         self.tiles.append(tiles['Water']['sprite_0.png']) #type: ignore
@@ -64,8 +63,14 @@ class World(Engine.BaseScene):
         self.tiles.extend(tiles['WaterBorderGrassBottom'].values()) #type: ignore
         self.tiles.extend(tiles['WaterBorderGrassTop'].values()) #type: ignore
         self.tiles = list(map(pygame.Surface.convert,self.tiles))
+        self.e_tiles = []
+        self.e_tiles.extend(e_tiles.values())
+        self.e_tiles = list(map(pygame.Surface.convert,self.e_tiles))
+        for s in self.e_tiles:
+            s.set_colorkey((0,0,0))
 
-        self.player_pos = glm.vec2()
+        self.player = Entity((0,0),(1,1),1)
+        self.player_pos = self.player.position
         self.camera_position = glm.vec2(self.player_pos)
         self.recalcChunks()
 
@@ -79,17 +84,27 @@ class World(Engine.BaseScene):
      
 
     def start(self):
-       print('Start called')
-
+        print('Start called')
+        #spawn player entity
+        self.world.spawnEntity(self.player)
+        self.world.setComponent(self.player,Animation(self.player,[0,0,0,3,4,5,5,5,3],6))
+       
     def update(self):
         #process events
         dt = self.engine.time.dt
+        pygame.display.set_caption(f'{self.engine.time.getFPS():.2f}')
         for event in self.getEvents():
-            if event.type == pygame.QUIT:
+            if event.type == const.QUIT:
                 pygame.event.post(Engine.Settings.ENGINE_CLOSE)
-            elif event.type == pygame.WINDOWRESIZED:
+            elif event.type == const.WINDOWRESIZED:
                 self.world_surf = None 
 
+        keys_d = pygame.key.get_just_pressed()
+        if keys_d[const.K_t]:
+            e = Entity((0,0),(1,1),2)
+            self.world.spawnEntity(e)
+            
+            self.world.unloadChunkAtomic((0,0))
         
         #move character
         keys = pygame.key.get_pressed()
@@ -109,7 +124,11 @@ class World(Engine.BaseScene):
         self.camera_position += (self.player_pos - self.camera_position) * camera_adjust_rate
 
         self.world.update(dt)
-       
+        for comp in self.world.e_components[Animation.i].values(): #type: ignore
+            comp:Animation
+            comp.t += dt * comp.fps
+            comp.entity.renderid = comp.cycle[comp.t.__trunc__()%len(comp.cycle)]
+
 
         #update miscellaneous stuff
         
@@ -145,7 +164,17 @@ class World(Engine.BaseScene):
         self.world_surf.fblits(l)
 
         ## Start Unoptimized portion ##
-        self.world_surf.fblits([(self.tiles[renderid],glm.ivec2(pos).to_tuple()) for pos,renderid in self.layer_entities.getDrawList(self.camera_position)])
+        for cpos in sorted(self.world.active_chunks,key=lambda x: x[1]):
+            chunk = self.world.entity_chunks.get(cpos,[])
+            chunk.sort(key=lambda x: x.position.y)
+            for entity in chunk:
+                x,y = glm.floor((entity.position - self.camera_position)*32)
+                self.world_surf.blit(self.e_tiles[entity.renderid],(x+hx,y+hy))
+
+            # if cx < -32*chunk_size or cy < -32*chunk_size or cx >= vw or cy >= vh: continue
+            
+            
+        # self.world_surf.fblits([(self.tiles[renderid],glm.ivec2(pos).to_tuple()) for pos,renderid in self.layer_entities.getDrawList(self.camera_position)])
             
 
     def stop(self):

@@ -1,3 +1,7 @@
+'''
+Small Module for anything related to debuging. The code quality here is terrible but it doesn't matter because ideally the debugging tools 
+wont get shipped to production
+'''
 from typing import Callable
 import pygame,ctypes,sys
 from time import perf_counter as time
@@ -223,6 +227,7 @@ class Tracer:
                         draw(0) 
             # screen.blit(surf)
             pygame.display.flip()
+
 class MemoryTracker:
     COLOR = (0,255,0)
     def __init__(self,tracking_size:int = 100,screen_pos:tuple = (400,20),every:int = 10):
