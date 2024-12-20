@@ -2,7 +2,6 @@ import typing
 import glm
 import numpy as np
 import numpy.typing as npt
-from collections import defaultdict
 from Scenes.SceneComponents.Weather import Weather
 from Lib.Utils.Pipeline import Pipeline
 from Lib.Utils.Pipeline import MissingPipline
@@ -11,6 +10,8 @@ from Lib.Utils.Math.Collider import Collider2D
 from Lib.Utils.Math.game_math import collide_chunks2d as _collide
 from Entities.Entity import Entity,Block
 from Scripts.EntityComponents import BaseComponent
+
+from Lib.Utils.debug import Tracer
 
 T = typing.TypeVar('T',bound=BaseComponent)
 
@@ -143,6 +144,7 @@ class WorldManager:
                 yield block
 
     ### Engine Functions ###
+    @Tracer().traceas('Manager Update')
     def update(self,udt:float):
         dt = udt * self.time_scale
         ### Three parts,
@@ -155,24 +157,26 @@ class WorldManager:
             for entity in chunk:
                 entity.update()
         # 2)move and collide entities
-        for chunk in echunks:
-            for entity in chunk:
-                if entity.vel.x:
-                    entity.collider.move_x(entity.vel.x * dt)
-                    for block in self.iterBlocksColliding(entity.collider):
-                        if entity.vel.x > 0:
-                            entity.collider.setXPositive(block.collider.x_negative)
-                        else:
-                            entity.collider.setXNegative(block.collider.x_positive)
-                        entity.vel.x = 0
-                if entity.vel.y:
-                    entity.collider.move_y(entity.vel.y * dt)
-                    for block in self.iterBlocksColliding(entity.collider):
-                        if entity.vel.y > 0:
-                            entity.collider.setXPositive(block.collider.y_negative)
-                        else:
-                            entity.collider.setYNegative(block.collider.y_positive)
-                        entity.vel.y = 0
+        @Tracer().trace
+        def physics():
+            for chunk in echunks:
+                for entity in chunk:
+                    if entity.vel.x:
+                        entity.collider.move_x(entity.vel.x * dt)
+                        for block in self.iterBlocksColliding(entity.collider):
+                            if entity.vel.x > 0:
+                                entity.collider.setXPositive(block.collider.x_negative)
+                            else:
+                                entity.collider.setXNegative(block.collider.x_positive)
+                            entity.vel.x = 0
+                    if entity.vel.y:
+                        entity.collider.move_y(entity.vel.y * dt)
+                        for block in self.iterBlocksColliding(entity.collider):
+                            if entity.vel.y > 0:
+                                entity.collider.setXPositive(block.collider.y_negative)
+                            else:
+                                entity.collider.setYNegative(block.collider.y_positive)
+                            entity.vel.y = 0
                 
         # 3) update explosions
         #TODO add explosions
@@ -245,7 +249,6 @@ class WorldManager:
                 e.append(entity)
             for comp in entities[entity]:
                 self.setComponent(entity,comp)     
-
 
     ### Misc Functions ###     
     def release(self):

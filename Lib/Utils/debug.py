@@ -66,6 +66,9 @@ def model_function(func:Callable,xs:np.ndarray):
     pyplot.plot(xs,func(xs))
     pyplot.show()
 from time import perf_counter
+
+
+
 class Tracer:
     class MutableString: 
         def __init__(self):
@@ -99,7 +102,22 @@ class Tracer:
                 self.calls.append((2,perf_counter(),info))
     else:
         def addDebug(self,info:str): ...
-
+    def traceas(self,name:str):
+        if __debug__:
+            def trace(func:Callable):
+                def wrapper(*args,**kwargs):
+                    if self.running:
+                        self.calls.append((0,perf_counter(),name))
+                        try:
+                            val = func(*args,**kwargs)
+                        finally:
+                            self.calls.append((1,perf_counter(),name))
+                        return val
+                    return func(*args,**kwargs)
+                return wrapper
+            return trace
+        else:
+            return lambda x: x
     def trace(self,func:Callable):
         if __debug__:
             def wrapper(*args,**kwargs):
@@ -127,7 +145,7 @@ class Tracer:
         no_more_time = self.calls[-1][1]
         calls= list(self.calls)
         surf = pygame.Surface((800,400))
-        from Utils.Math.Fast import cache
+        from Lib.Utils.Math.Fast import cache
         def lerp(a,b,t):
             return a * (1-t) + b * t
         def inverse_lerp(a,b,c):
@@ -364,3 +382,26 @@ class VecTracker:
     def draw(self):
         if surf is None: return
         surf.blit(self.surface,self.screen_pos)
+class LagTracker:
+    def __init__(self,history:int=100):
+        self.dts = deque([],maxlen=history)
+
+    def get_width(self): return (self.dts.maxlen or 0) * 3
+    def get_height(self): return 100
+    def get_size(self):
+        return self.get_width(),self.get_height()
+
+    def add(self,dt):
+        self.dts.append(dt)
+    @Tracer().trace
+    def draw(self,surf,pos:tuple[int,int]):
+        def color(dt:float):
+            dt *= 100
+            return (255,0,0) # tuple(map(int,(dt*2,dt*0.3,dt*0.1)))
+        x = pos[0]
+        y = pos[1]+100
+        for dt in self.dts:
+            h = int(dt * 1000)
+            x += 3
+            pygame.draw.rect(surf,color(dt),(x,y-h,3,h))
+

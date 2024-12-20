@@ -12,11 +12,12 @@ def ret_and_clear(c):
 
 
 overworld = {
-    "height": LayeredOpenSimplex(0.006,3,2,0.5),
+    "height": LayeredOpenSimplex(0.06,3,2,0.5),
     # "temperature": LayeredOpenSimplex(0.01,3,2,0.5, lambda o : list(range(10,o+10,1))),
     # "rainfall": LayeredOpenSimplex(0.01,3,2,0.5, lambda o : list(range(20,o+20,1))),
 }
 
+from Lib.Utils.debug import Tracer
 
     
 class NewTerrainLayer(PipelineLayer[tuple[int,int],tuple[np.ndarray,np.ndarray,np.ndarray]]):
@@ -51,6 +52,7 @@ class TerrainGen(PipelineLayer[tuple[int,int],np.ndarray]):
     def declareDependencies(self, key: tuple[int, int]):
         self.dependency_terrain.addWork(key)
 
+    @Tracer().trace
     def updateDependencies(self):
         self.dependency_terrain.update()
 
@@ -63,6 +65,8 @@ class TerrainGen(PipelineLayer[tuple[int,int],np.ndarray]):
             #safe to proceed
             xs,ys,height = terrain
             return self.height_to_block(height)
+
+
 
 
 

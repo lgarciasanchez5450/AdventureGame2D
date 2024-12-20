@@ -4,7 +4,7 @@ import glm
 import numpy as np
 from Lib import Engine
 from Lib.Engine.SceneTransitions.BaseTransition import BaseTransition
-from Lib.Utils.debug import Tracer
+from Lib.Utils.debug import Tracer,LagTracker
 from pygame import constants as const
 from Entities.Entity import Entity, Block
 from Scripts.EntityComponents import Animation
@@ -14,7 +14,7 @@ from Scenes.SceneComponents.WorldManager import WorldManager
 class DrawComponent(typing.Protocol):
     position:glm.vec2
     renderid:int
-
+lag = LagTracker()
 class Layer:
     def __init__(self,max_drawables:int=-1):
 
@@ -50,11 +50,14 @@ class World(Engine.BaseScene):
         
         self.world = WorldManager(8)
         self.world.setTerrainGenerationPipeline(TerrainGen(8))
+        self.engine.target_fps = 0
 
         tiles = self.engine.resource_manager.getDir('NewTiles')
         e_tiles = self.engine.resource_manager.getDir('Entities/NewPlayer/PlayerFrontIdle')
         null_tex = pygame.transform.scale(self.engine.resource_manager.getTex('Ground/null.png'),(32,32))
         self.layer_entities = LayerYSort()
+
+        self.player_speed = 4
 
 
         self.tiles = [null_tex]
@@ -66,14 +69,17 @@ class World(Engine.BaseScene):
         self.e_tiles = []
         self.e_tiles.extend(e_tiles.values())
         self.e_tiles = list(map(pygame.Surface.convert,self.e_tiles))
+        self.offsets = [(-11,-30)] * len(self.e_tiles)
         for s in self.e_tiles:
             s.set_colorkey((0,0,0))
+
+        
 
         self.player = Entity((0,0),(1,1),1)
         self.player_pos = self.player.position
         self.camera_position = glm.vec2(self.player_pos)
         self.recalcChunks()
-
+    @Tracer().trace
     def recalcChunks(self):
         c = glm.ivec2(self.player_pos//8)
         new = {(x,y) for x in range(c.x-3,c.x+4,1) for y in range(c.y-2,c.y+3,1)}
@@ -81,14 +87,12 @@ class World(Engine.BaseScene):
         self.world.loadChunks(new)
         self.world.setActiveChunks(new)
 
-     
-
     def start(self):
         print('Start called')
         #spawn player entity
         self.world.spawnEntity(self.player)
         self.world.setComponent(self.player,Animation(self.player,[0,0,0,3,4,5,5,5,3],6))
-       
+    @Tracer().traceas("SceneUpdate")
     def update(self):
         #process events
         dt = self.engine.time.dt
@@ -98,24 +102,25 @@ class World(Engine.BaseScene):
                 pygame.event.post(Engine.Settings.ENGINE_CLOSE)
             elif event.type == const.WINDOWRESIZED:
                 self.world_surf = None 
+        lag.add(self.engine.time.unscaledDeltaTime)
+        # keys_d = pygame.key.get_just_pressed()
 
-        keys_d = pygame.key.get_just_pressed()
-        if keys_d[const.K_t]:
-            e = Entity((0,0),(1,1),2)
-            self.world.spawnEntity(e)
-            
-            self.world.unloadChunkAtomic((0,0))
+
         
         #move character
         keys = pygame.key.get_pressed()
+        # self.engine.tracer.running = keys[const.K_t]
 
         w = keys[const.K_w]
         a = keys[const.K_a]
         s = keys[const.K_s]
         d = keys[const.K_d]
+        
         vel = glm.vec2(d-a,s-w)
+        if vel.x and vel.y:
+            vel = glm.normalize(vel)
         starting_pos = self.player_pos//8
-        self.player_pos += vel * dt
+        self.player_pos += vel * (dt * self.player_speed)
         if self.player_pos//8 != starting_pos:
             self.recalcChunks()
 
@@ -132,14 +137,14 @@ class World(Engine.BaseScene):
 
         #update miscellaneous stuff
         
-
+    @Tracer().trace
     def draw(self,screen:pygame.Surface):
         '''
         Optmized Drawing Routine for drawing and culling ground tiles
         '''
         if self.world_surf is None:
             self.world_surf = screen.subsurface((screen.get_width()-self.viewport_size[0])//2,(screen.get_height()-self.viewport_size[1])//2,self.viewport_size[0],self.viewport_size[1])
-        # screen.fill('black')
+        screen.fill('black')
         vw = self.viewport_size[0]
         vh = self.viewport_size[1]
         l:list[tuple[pygame.Surface,tuple[int,int]]] = []
@@ -169,10 +174,12 @@ class World(Engine.BaseScene):
             chunk.sort(key=lambda x: x.position.y)
             for entity in chunk:
                 x,y = glm.floor((entity.position - self.camera_position)*32)
-                self.world_surf.blit(self.e_tiles[entity.renderid],(x+hx,y+hy))
+                ox,oy = self.offsets[entity.renderid]
+                self.world_surf.blit(self.e_tiles[entity.renderid],(x.__floor__()+hx+ox.__floor__(),y+hy+oy))
 
             # if cx < -32*chunk_size or cy < -32*chunk_size or cx >= vw or cy >= vh: continue
-            
+        
+        lag.draw(screen,(0,screen.get_height()-lag.get_height()))
             
         # self.world_surf.fblits([(self.tiles[renderid],glm.ivec2(pos).to_tuple()) for pos,renderid in self.layer_entities.getDrawList(self.camera_position)])
             

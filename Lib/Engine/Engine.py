@@ -7,6 +7,7 @@ from .SceneTransitions.BaseTransition import BaseTransition
 from .Scene import BaseScene
 from .ResourceManager import ResourceManager
 from . import Settings
+from . import PreInitialization
 
 from Lib.Utils.debug import Tracer #TODO find a way to get external dependencies to zero
 from Lib.Utils.Time import Time 
@@ -59,12 +60,20 @@ class Engine:
         assert fps >= 0
         self.target_fps = fps
 
+    def PreInit(self) -> bool:
+        return PreInitialization.preinitialize()
+
     def Start(self) -> bool: 
         '''
         Guaranteed to execute prior to Engine.Run (Only before, *not* RIGHT before)    
         The Window was just created. 
         Pygame is initialized.
         '''
+        if self.PreInit() is False:
+            if __debug__:
+                print("PreInitialization Failed!")
+            return False
+
         self.resource_manager.load()
         self.scenes.update(self.sceneCreator())
         if len(self.scenes) == 0: 
