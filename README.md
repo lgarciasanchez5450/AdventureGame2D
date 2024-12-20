@@ -1,8 +1,8 @@
 # Adventure_Game
 A very ambitious adventure game
-Python Version 3.10 (very important)
+Python Version 3.12 (very important)
 Pip dependencies:
-    - Pygame (ce is preferable)
+    - pygame-ce
     - moderngl
     - numba
     - psutils
@@ -15,10 +15,10 @@ for the perlin.c noise, you must pass do the same but with arrayobject as well, 
 
 The game is run via main.py
 
-As of December 17, 2023:
+As of December 18, 2024:
 pygount -f summary
 
-![image](https://github.com/lgarciasanchez5450/Adventure_Game/assets/81716333/d3b99b34-f903-4649-9768-ccaa366cb08e)
+![image](https://github.com/user-attachments/assets/f03995dd-c7f6-4d45-955e-b49159464256)
 
 Contact Me via:
  - Discord @ hithere32123
