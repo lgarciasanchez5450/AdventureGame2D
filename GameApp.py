@@ -20,6 +20,7 @@ class GameApp(Application):
         return self.engine.Run()
    
 if __name__ == '__main__':
+    Engine.IgnoreScreenScaling()
     app:Application = GameApp()
     print('Game Instantiated')
     app.run()

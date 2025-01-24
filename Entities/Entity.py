@@ -4,7 +4,7 @@ from Lib.Utils.Math.Collider import Collider2D
 from Lib.Utils.Serializable import Serializeable,pack,unpack
 
 if typing.TYPE_CHECKING:
-    from Entities.EntityComponents.BaseComponent import BaseComponent
+    from Scripts.EntityComponents import BaseComponent
 
 esubs:dict[str,type['Entity']] = {}
 class Entity(Serializeable):

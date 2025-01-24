@@ -59,10 +59,14 @@ class Pipeline[K,V](typing.Protocol):
     def update(self): ...
          
 
+
 class MissingPipline[K,V]:
     '''General Pipeline that fits the Pipeline protocol but will only produce dummy results'''
     def __init__(self,retval:V,callback:typing.Callable[[typing.Mapping[K,V]],typing.Any]|None=None): 
-        self.callback = callback or (lambda x: None)
+        if callback is None:
+            setattr(self,'callback',lambda x:x)
+        else:
+            self.callback = callback 
         self.retval = retval
     def addMuchWork(self,work:typing.Iterable[K]): self.callback({k:self.retval for k in work})
     def addWork(self,one_work:K): self.callback({one_work:self.retval})
@@ -72,6 +76,7 @@ class MissingPipline[K,V]:
     def update(self): pass
          
 
+def nothing(*_,**__): pass
 
 class PipelineLayer[K,V](abc.ABC):
     '''Implementation of a one-shot Layer
@@ -79,9 +84,34 @@ class PipelineLayer[K,V](abc.ABC):
     '''
     __slots__ = 'callback','work'
     def __init__(self,callback:typing.Callable[[typing.Mapping[K,V]],typing.Any]|None=None):
-        self.callback = callback or (lambda x:None)
+        if callback is None:
+            setattr(self,'callback',nothing)
+        else:
+            self.callback = callback 
         self.work:deque[K] = deque()
         
+    def addAnotherOutput(self,callback:typing.Callable[[typing.Mapping[K,V]],typing.Any],order:typing.Literal['before','after']='after'):
+        '''
+        This registers another callback function to output.
+         Arguements:
+          callback[Callable]: The new callback to add.
+          order['before'|'after']: Whether this new callback should execute before or after all others.
+         * Note: This operation is unreversible. Each new output added will make the pushing out a value slower. Therfore for performance reasons it is important to have a low amount of outputs.'''
+        if self.callback is nothing:
+            self.callback = callback
+        else:
+            original_callback = self.callback  #save current callback to local reference
+            if order =='after':
+                def wrapper(m:typing.Mapping[K,V]):
+                    original_callback(m)
+                    callback(m)
+            elif order == 'before':
+                def wrapper(m:typing.Mapping[K,V]):
+                    callback(m)
+                    original_callback(m)
+            else:
+                raise ValueError
+            self.callback = wrapper
 
     def addMuchWork(self,work:typing.Iterable[K]):
         self.work.extend(work)
@@ -113,7 +143,10 @@ class PipelineLayerMultiStep[K,V](metaclass=abc.ABCMeta):
      multi-step meaning: each "unit" of work that is sent out is computed over the course of multiple updates
     '''
     def __init__(self,callback:typing.Callable[[typing.Mapping[K,V]],typing.Any]|None=None):
-        self.callback = callback or (lambda x:None)
+        if callback is None:
+            setattr(self,'callback',lambda x:x)
+        else:
+            self.callback = callback 
         self.work:deque[K] = deque()
         self.current_key:K|None= None
         self.current_iter:typing.Iterator|None = None

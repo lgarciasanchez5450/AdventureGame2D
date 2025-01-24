@@ -140,6 +140,7 @@ class Tracer:
         pygame.init()
         screen = pygame.display.set_mode((800,400))
         font = pygame.font.SysFont('Arial',10)
+        start_time = self.calls[0][1]
         left_time = self.calls[0][1]
         right_time = min(self.calls[-1][1],left_time+10)
         no_more_time = self.calls[-1][1]
@@ -188,13 +189,17 @@ class Tracer:
                     t_suf = 'secs'
                     if d_time < 1:
                         d_time *= 1000
-                        t_suf = 'millis'
+                        t_suf = 'ms'
+                    if d_time < 1:
+                        d_time *= 1000
                     # print(left_time,right_time,start_time)
+                        t_suf =  'µs'
                     # print((start_x,y,end_x-start_x,height))
               
-                    pygame.draw.rect(screen,get_color(cur[2]),(start_x,y,end_x-start_x,height))
-                    screen.blit(render_string(cur[2]), (start_x,y))
-                    screen.blit(render_string(str(round(d_time,2))+t_suf), (start_x,y+10))
+                    pygame.draw.rect(screen,get_color(cur[2]),(start_x,y,max(1,end_x-start_x),height))
+                    if end_x-start_x > 5:
+                        screen.blit(render_string(cur[2]), (start_x,y))
+                        screen.blit(render_string(str(round(d_time,2))+t_suf), (start_x,y+10))
                     current_info = stack[-1][2].get()
                     if current_info:
                         if end_x-start_x > font.size(current_info)[0]:
@@ -216,8 +221,8 @@ class Tracer:
                     if event.key == pygame.K_LEFT:
                         dt = right_time - left_time
                         left_time -= to_move
-                        if left_time < 0:
-                            left_time = 0
+                        if left_time < start_time:
+                            left_time = start_time
                         right_time = left_time + dt
                         draw(0)
                     elif event.key == pygame.K_RIGHT:
@@ -229,8 +234,8 @@ class Tracer:
                         draw(0)
                     elif event.key == pygame.K_UP:
                         left_time -= to_move/2
-                        if left_time < 0:
-                            left_time = 0
+                        if left_time < start_time:
+                            left_time = start_time
                         right_time += to_move/2
                         if right_time > no_more_time:
                             right_time = no_more_time
@@ -243,7 +248,7 @@ class Tracer:
                             left_time = avg - 0.01
                             right_time = avg + 0.01
                         draw(0) 
-            # screen.blit(surf)
+            pygame.time.wait(30)
             pygame.display.flip()
 
 class MemoryTracker:

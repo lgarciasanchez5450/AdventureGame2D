@@ -6,6 +6,8 @@ pygame.init()
 
 from GameApp import GameApp
 from MainMenu import MainMenu
+from Lib import Engine
+Engine.IgnoreScreenScaling()
 
 state = 1
 while True:

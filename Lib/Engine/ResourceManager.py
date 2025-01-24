@@ -48,7 +48,7 @@ class ResourceManager:
         
     def updateHooks(self,hooks:dict[str,typing.Callable]):
         self.load_hooks.update(hooks)
-
+    @Tracer().traceas('ResourceManager Load')
     def load(self,added_path:str = ''):
         self.assets = {}
         path = os.path.join(self.dir,added_path) if added_path else self.dir

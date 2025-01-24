@@ -9,6 +9,7 @@
         "tupleobject.h": "c"
     },
     "python.analysis.typeCheckingMode": "basic",
+    "python.REPL.enableREPLSmartSend": false,
     
 
 }

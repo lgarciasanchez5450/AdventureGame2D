@@ -60,20 +60,21 @@ class Engine:
         assert fps >= 0
         self.target_fps = fps
 
+    @Tracer().trace
     def PreInit(self) -> bool:
         return PreInitialization.preinitialize()
-
+    
+    @Tracer().trace
     def Start(self) -> bool: 
         '''
         Guaranteed to execute prior to Engine.Run (Only before, *not* RIGHT before)    
-        The Window was just created. 
+        The Window was just created. \n
         Pygame is initialized.
         '''
         if self.PreInit() is False:
             if __debug__:
                 print("PreInitialization Failed!")
             return False
-
         self.resource_manager.load()
         self.scenes.update(self.sceneCreator())
         if len(self.scenes) == 0: 
@@ -84,7 +85,7 @@ class Engine:
         
     def Run(self):
         '''
-        Guaranteed to execute after Engine.Start . 
+        Guaranteed to execute after Engine.Start(). \n
         Engine is fully initialized.
         '''
         running = True 
@@ -135,4 +136,3 @@ class Engine:
             print("Engine Exited without cleanup.")
         if __debug__:
             self.tracer.show()
-

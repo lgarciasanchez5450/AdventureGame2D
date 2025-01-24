@@ -24,7 +24,6 @@ class Animation(BaseComponent):
         self.fps = fps
         self.cycle = animation
 
-
     def serialize(self) -> bytes:
         return pack(sint(self.fps),*map(sint,self.cycle))
     
@@ -41,7 +40,9 @@ class Animation(BaseComponent):
 
 
 class Attributes(BaseComponent):
-    def __init__(self):
+    __slots__ = '_str','_int','_def','_spd'
+    def __init__(self,entity:Entity):
+        super().__init__(entity)
         self._str = 0
         self._int = 0
         self._def = 0

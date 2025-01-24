@@ -21,7 +21,6 @@ class Serializeable:
             abstracts.add(cls)
         if __debug__: init()
 
-
     def serialize(self) -> bytes: ...
     @classmethod
     def deserialize(cls:typing.Callable[...,T],b:bytes) -> T: ...
@@ -33,9 +32,9 @@ def init():
     build_path(Serializeable,'',paths)
     types.clear()
     types.update({v:k for k,v in paths.items()})
-if __debug__:
-    from Lib.Utils.debug import profile
-    init= profile(init)
+# if __debug__:
+#     from Lib.Utils.debug import profile
+#     init= profile(init)
 
     
 
@@ -54,7 +53,7 @@ def deserialize(b:bytes) -> Serializeable:
 
 
 
-def pack(*a:bytes) -> bytearray:
+def pack(*a:bytes|bytearray) -> bytearray:
     max_size = max(map(len,a))
     bits = max_size.bit_length()
     prefix_size = bits//8 + 1

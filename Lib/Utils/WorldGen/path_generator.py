@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Callable, Protocol
+import glm
 class PerlinPath:
     def __init__(self,map:np.ndarray,noise_function:Callable[[float],float],start_pos:np.ndarray,start_vel:np.ndarray):
         from math import atan2
@@ -82,7 +83,7 @@ class LerpPath:
         print("TO THIS TO USE DISTANCE FUNCTION LIKE IN LINE 75") 
         mid_point = (self.points[-2][0] + tangents[-2][0] * directions[-2][0]/2,self.points[-2][1] + tangents[-2][1] * directions[-2][1]/2)
         splines.append((self.points[-2],mid_point,self.points[-1]))
-        return splines
+        return list(map(glm.vec2,splines)) #type: ignore
 
 
     def addPoint(self,tup:tuple[int,int]):
@@ -145,6 +146,7 @@ class LerpPath:
             func = LerpPath.cubic_bezier if len(spline)==4 else LerpPath.quadratic_bezier
             for j in range(SAMPLES_PER_SPLINE):
                 t = j/SAMPLES_PER_SPLINE
+                print(*spline)
                 point = func(*spline,t) #type: ignore
                 self.map[int(point[1])][int(point[0])] = 255
 
@@ -159,12 +161,12 @@ if __name__ == '__main__':
     pygame.init()
     s = pygame.display.set_mode((900,600))
     disp = pygame.Surface((500,500))
-    map = np.zeros((500,500),dtype = np.int32)
-    path = LerpPath(map,lambda x: random.random()*x,np.array([250,100],dtype=np.float32),np.array([0,-1],dtype=np.float32))
+    map_ = np.zeros((500,500),dtype = np.int32)
+    path = LerpPath(map_,lambda x: random.random()*x,np.array([250,100],dtype=np.float32),np.array([0,-1],dtype=np.float32))
     path.carve()
-    for y in range(map.shape[0]):
-        for x in range(map.shape[1]):
-            disp.set_at((x,y),(map[y][x],map[y][x],map[y][x]))
+    for y in range(map_.shape[0]):
+        for x in range(map_.shape[1]):
+            disp.set_at((x,y),(map_[y][x],map_[y][x],map_[y][x]))
 
     while True:
         for event in pygame.event.get():

@@ -6,14 +6,12 @@ class Time:
         self.timeScale = 1
         self.fixedDt = 0.1
 
-
     def start(self):
         self.time = 0
         self.realTime = 0
         self.unscaledDeltaTime = 0
         self.frame = 0
         self._prevTime = self._startTime = time.perf_counter()
-
     
     def update(self):
         t = time.perf_counter()

@@ -2,15 +2,17 @@ import typing
 import glm
 import numpy as np
 import numpy.typing as npt
-from Scenes.SceneComponents.Weather import Weather
 from Lib.Utils.Pipeline import Pipeline
 from Lib.Utils.Pipeline import MissingPipline
-from Scenes.SceneComponents.ChunkSaver import ChunkSaver
 from Lib.Utils.Math.Collider import Collider2D
 from Lib.Utils.Math.game_math import collide_chunks2d as _collide
 from Entities.Entity import Entity,Block
+from Scenes.SceneComponents.Weather import Weather
+from Scenes.SceneComponents.ChunkSaver import ChunkSaver
+from Scenes.SceneComponents.Particles import Particles
 from Scripts.EntityComponents import BaseComponent
-
+from Scripts.GameSeed import GameSeed
+from Scripts.WorldGenContext import WorldGenContext
 from Lib.Utils.debug import Tracer
 
 T = typing.TypeVar('T',bound=BaseComponent)
@@ -27,7 +29,7 @@ type POS = CPOS
 #     release_time:float# seconds , time it takes for the energy to be fully released by the source
 
 class WorldManager:
-    def __init__(self,chunk_size:int = 8):
+    def __init__(self,seed:GameSeed,chunk_size:int = 8,):
         self.chunk_size = chunk_size 
         self.ebig_threshold = chunk_size//2
 
@@ -40,7 +42,7 @@ class WorldManager:
         self.e_components:list[dict[int,BaseComponent]] = [{} for _ in range(BaseComponent.i)]
 
         #Settings
-        self.time_scale:float = 1.0
+        self.time_scale:float = seed.time_scale
 
         #Async Queues
         self.to_save:set[CPOS] = set()
@@ -50,7 +52,11 @@ class WorldManager:
         self.c_saver = ChunkSaver('Temp')
         self.terrain_gen:Pipeline[CPOS,npt.NDArray[np.unsignedinteger[typing.Any]]] = MissingPipline(np.zeros((self.chunk_size,self.chunk_size),dtype=np.uint8),self.terrain_chunks.update)
         # self.physics = Physics2D()
-        self.weather = Weather()
+        self.game_seed = seed
+        self.weather = Weather(seed)    
+        self.particles = Particles()
+
+
     ### Configuration Functions ###
     def setTerrainGenerationPipeline(self,pipeline:Pipeline[CPOS,npt.NDArray[np.unsignedinteger[typing.Any]]]):
         pipeline.callback = self.terrain_chunks.update
@@ -100,7 +106,8 @@ class WorldManager:
         self.e_components[component.i][entity.uuid] = component
 
 
-    
+    def iterComponents(self,component:type[T]) -> typing.Iterable[T]:
+        return self.e_components[component.i].values() #type: ignore
 
     ### Spawning Functions ###
     def spawnEntity(self,entity:Entity):
@@ -177,7 +184,7 @@ class WorldManager:
                             else:
                                 entity.collider.setYNegative(block.collider.y_positive)
                             entity.vel.y = 0
-                
+        physics()
         # 3) update explosions
         #TODO add explosions
 
@@ -207,7 +214,7 @@ class WorldManager:
         # we end with the invariant that all entities are alive 
         
         self.terrain_gen.update()
-        self.weather.update()
+        self.weather.update(dt)
         
 
         to_unload = min(len(self.to_save),2)

@@ -4,6 +4,7 @@ from math import cos, sin,pi,hypot,sqrt,atan2,floor,log2,ceil,acos,tanh
 from random import random,randint
 from collections import deque
 import numpy as np
+import math
 
 DEBUG = True
 #define inclusive_range
@@ -33,7 +34,7 @@ def collide_chunks2d(x1:float,y1:float,x2:float,y2:float,chunk_size:int): # type
 	cy2 = (y2 / chunk_size).__ceil__()
 	return [(x,y) for x in range(cx1,cx2,1) for y in range(cy1,cy2,1)]
 try:
-	raise ModuleNotFoundError()
+	# raise ModuleNotFoundError()
 	import entity_manager2 #type: ignore
 	collide_chunks:Callable[[float,float,float,float,float,float,int],tuple[tuple[int,int,int],...]] = entity_manager2.collide_chunks #type: ignore
 except (ModuleNotFoundError or ImportError) as err:
@@ -51,6 +52,24 @@ TWO_PI = 2*pi
 
 T = TypeVar("T")
 
+
+def expDecay(a:T,b:T,decay:float,dt:float) -> T:
+	'''Has the unique property that repeated calls in the pattern of 
+	 >>> a = 0
+	 >>> b = 100
+	 >>> decay = 1 #Number representing after one second what a would be 
+	 >>> for _ in range(10):
+	 >>>   a = expDecay(a,b,decay,0.1)
+	 >>> a
+	 >>> 63.212055882855786
+	 >>> a = 0
+	 >>> for _ in range(20):
+	 >>>   a = expDecay(a,b,decay,0.05)
+	 >>> a
+	 >>> 63.212055882855786 #same as previously
+	This makes this function usefull for lerp smooth following with framerate independance
+	'''
+	return 	b+(a-b)*math.exp(-decay*dt) #type: ignore
 
 
 @njit(cache = True)
