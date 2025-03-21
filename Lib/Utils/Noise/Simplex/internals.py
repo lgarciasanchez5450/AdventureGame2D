@@ -126,7 +126,7 @@ def _noise4a_ip(x, y, z, w, perm, out):
 
 
 @njit(cache=True)
-def _noise2(x, y, perm):
+def _noise2(x:float, y:float, perm:np.ndarray):
     # Place input coordinates onto grid.
     stretch_offset = (x + y) * STRETCH_CONSTANT2
     xs = x + stretch_offset
@@ -227,7 +227,7 @@ def _noise2(x, y, perm):
 
 
 @njit(cache=True)
-def _noise3(x, y, z, perm, perm_grad_index3):
+def _noise3(x:float, y:float, z:float, perm:np.ndarray, perm_grad_index3:np.ndarray):
     # Place input coordinates on simplectic honeycomb.
     stretch_offset = (x + y + z) * STRETCH_CONSTANT3
     xs = x + stretch_offset
@@ -729,7 +729,7 @@ def _noise3(x, y, z, perm, perm_grad_index3):
 
 
 @njit(cache=True)
-def _noise4(x, y, z, w, perm):
+def _noise4(x:float, y:float, z:float, w:float, perm:np.ndarray):
     # Place input coordinates on simplectic honeycomb.
     stretch_offset = (x + y + z + w) * STRETCH_CONSTANT4
     xs = x + stretch_offset

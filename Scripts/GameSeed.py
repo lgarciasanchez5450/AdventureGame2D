@@ -32,6 +32,8 @@ class GameSeed:
 
     @classmethod
     def newDefault(cls,seed:int):
+        if seed > 0xFF_FF_FF_FF_FF_FF_FF_FF or seed < 0:  
+            raise ValueError("Seed must be a valid uint64_t")
         return cls.fromDict({
             'seed':seed,
             'time_of_day':300,

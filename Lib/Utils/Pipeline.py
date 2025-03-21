@@ -167,7 +167,6 @@ class PipelineLayerMultiStep[K,V](metaclass=abc.ABCMeta):
     def updateDependencies(self):
         '''Update dependencies'''
 
-
     def update(self):
         if self.current_key is None:
             if not self.work: return

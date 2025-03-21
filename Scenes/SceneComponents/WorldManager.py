@@ -14,7 +14,7 @@ from Scripts.EntityComponents import BaseComponent
 from Scripts.GameSeed import GameSeed
 from Scripts.WorldGenContext import WorldGenContext
 from Lib.Utils.debug import Tracer
-
+from Scenes.SceneComponents.TerrainGeneration import terrainType,humidityType,temperatureType
 T = typing.TypeVar('T',bound=BaseComponent)
 
 type CPOS = tuple[int,int] # Python >=3.12 Specific Syntax
@@ -50,19 +50,23 @@ class WorldManager:
 
         #Dependencies
         self.c_saver = ChunkSaver('Temp')
-        self.terrain_gen:Pipeline[CPOS,npt.NDArray[np.unsignedinteger[typing.Any]]] = MissingPipline(np.zeros((self.chunk_size,self.chunk_size),dtype=np.uint8),self.terrain_chunks.update)
+        self.weather = Weather(seed)    
         # self.physics = Physics2D()
         self.game_seed = seed
-        self.weather = Weather(seed)    
         self.particles = Particles()
+        self.terrain_gen:Pipeline[CPOS,tuple[terrainType,humidityType,temperatureType]] = MissingPipline((np.zeros((self.chunk_size,self.chunk_size),dtype=np.uint8),0.0,0.0),self.combined_callback )
 
+    def combined_callback(self,d:typing.Mapping[CPOS,tuple[terrainType,humidityType,temperatureType]]):
+        self.terrain_chunks.update({cpos:v[0] for cpos,v in d.items()})
+        self.weather.humidity.update({cpos:v[1] for cpos,v in d.items()})
+        self.weather.temperature.update({cpos:v[2] for cpos,v in d.items()})
 
     ### Configuration Functions ###
-    def setTerrainGenerationPipeline(self,pipeline:Pipeline[CPOS,npt.NDArray[np.unsignedinteger[typing.Any]]]):
-        pipeline.callback = self.terrain_chunks.update
+    def setTerrainGenerationPipeline(self,pipeline:Pipeline[CPOS,tuple[terrainType,humidityType,temperatureType]]):
+        pipeline.callback = self.combined_callback
         self.terrain_gen = pipeline
 
-    def getTerrainGenerationPipeline(self) -> Pipeline[CPOS,npt.NDArray[np.unsignedinteger[typing.Any]]]:
+    def getTerrainGenerationPipeline(self):
         return self.terrain_gen
     
     def setTimeScale(self,t:float):

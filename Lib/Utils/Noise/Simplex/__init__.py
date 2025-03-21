@@ -134,13 +134,13 @@ class OpenSimplexLayered(OpenSimplex):
 def preinitialize(size:int=8):
     s = np.arange(size)*0.1
     perm,perm3d = _init(0)
-    _noise2(s,s,perm)
+    _noise2(s[0],s[0],perm)
     t = _noise2a(s,s,perm)
     _noise2a_ip(s,s,perm,t)
-    _noise3(s,s,s,perm,perm3d)
+    _noise3(s[0],s[0],s[0],perm,perm3d)
     t = _noise3a(s,s,s,perm,perm3d)
     _noise3a_ip(s,s,s,perm,perm3d,t)
-    _noise4(s,s,s,s,perm)
+    _noise4(s[0],s[0],s[0],s[0],perm)
     t = _noise4a(s,s,s,s,perm)
     _noise4a_ip(s,s,s,s,perm,t)
     return True

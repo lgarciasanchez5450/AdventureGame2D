@@ -10,7 +10,7 @@ from Entities.Entity import Entity, Block
 from Scripts import EntityComponents as EC
 from Scripts.GameSeed import GameSeed
 from Scripts.BackgroundAnim import BackgroundAnim
-from Scenes.SceneComponents.TerrainGeneration import TerrainGen
+from Scenes.SceneComponents.TerrainGeneration import WorldGen as TerrainGen
 from Scenes.SceneComponents import TerrainGeneration
 from Scenes.SceneComponents.WorldManager import WorldManager
 from Scripts.WorldGenContext import WorldGenContext
@@ -58,7 +58,7 @@ class World(Engine.BaseScene):
         
         self.world = WorldManager(game_seed,8)
         with WorldGenContext(game_seed).context(TerrainGeneration.__dict__):
-            self.world.setTerrainGenerationPipeline(TerrainGen(8)) #type: ignore
+            self.world.setTerrainGenerationPipeline(TerrainGen(8,self.world.terrain_chunks.update,)) #type: ignore
         self.engine.setFPS(60)
 
         tiles = self.engine.resource_manager.getDir('NewTiles')
